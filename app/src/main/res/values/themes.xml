@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Cozy" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/cozy_bg</item>
+        <item name="android:statusBarColor">@color/cozy_bg</item>
+        <item name="android:navigationBarColor">@color/cozy_bg</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:colorAccent">@color/cozy_ink</item>
+    </style>
+
+    <color name="cozy_bg">#FBF6EF</color>
+    <color name="cozy_ink">#3A2E2A</color>
+    <color name="cozy_pink">#F4C2CB</color>
+</resources>
