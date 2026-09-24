@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import app.cozy.launcher.data.Store
+import app.cozy.launcher.data.themeId
 import app.cozy.launcher.system.Apps
 import app.cozy.launcher.ui.Card
 import app.cozy.launcher.ui.Chip
@@ -34,6 +35,7 @@ import app.cozy.launcher.ui.Navigator
 import app.cozy.launcher.ui.Page
 import app.cozy.launcher.ui.Pill
 import app.cozy.launcher.ui.PillStyle
+import app.cozy.launcher.ui.Screen
 import app.cozy.launcher.ui.SectionLabel
 import app.cozy.launcher.ui.Toggle
 import app.cozy.launcher.ui.theme.LocalPalette
@@ -77,8 +79,12 @@ fun SettingsScreen(nav: Navigator) {
                 SettingRow("Cute animations", "The mascot bobs and blinks, sparkles twinkle") {
                     Toggle(s.animations, { v -> Store.updateSettings { it.copy(animations = v) } }, "Animations")
                 }
-                SettingRow("E-ink mode", "Black and white, no animations. For the Bigme reader.") {
-                    Toggle(s.eink, { v -> Store.updateSettings { it.copy(eink = v) } }, "E-ink mode")
+                SettingRow("Theme", when (s.themeId()) {
+                    "meadow" -> "Meadow: painted skies and strawberries"
+                    "paper" -> "Paper: black and white for e-ink"
+                    else -> "Cozy cream"
+                }) {
+                    Pill("Change", { nav.go(Screen.Themes) }, style = PillStyle.LIGHT, icon = "palette")
                 }
                 SettingRow("Week starts on Monday", "Otherwise the calendar starts on Sunday") {
                     Toggle(s.weekStartsMonday, { v -> Store.updateSettings { it.copy(weekStartsMonday = v) } }, "Week starts Monday")

@@ -75,7 +75,18 @@ data class Settings(
     val longMinutes: Int = 15,
     val askedNotifications: Boolean = false,
     val setupDone: Boolean = false,
+    /** "cozy", "meadow" or "paper". */
+    val theme: String = "cozy",
+    /** Meadow scene: "sunny", "picnic", "golden" or "night". */
+    val scene: String = "sunny",
+    val skyFollowsTime: Boolean = true,
+    val bunnies: Boolean = true,
+    val driftClouds: Boolean = true,
+    val stickers: Boolean = true,
 )
+
+/** The theme in use. The older e-ink switch still counts as the Paper theme. */
+fun Settings.themeId(): String = if (eink) "paper" else theme
 
 // ---------- Notes ----------
 
@@ -112,6 +123,17 @@ data class Stroke(
     val pts: List<Float>,
 )
 
+/** A sticker stuck on a note page. Position and size in dp. */
+@Serializable
+data class PlacedSticker(
+    val id: String = newId(),
+    val kind: String,
+    val x: Float,
+    val y: Float,
+    val size: Float = 84f,
+    val rot: Float = 0f,
+)
+
 /** A floating text box placed with a long pen hold. Position in dp. */
 @Serializable
 data class TextBox(
@@ -136,6 +158,7 @@ data class Note(
     val blocks: List<Block> = listOf(TextBlock()),
     val strokes: List<Stroke> = emptyList(),
     val boxes: List<TextBox> = emptyList(),
+    val stickers: List<PlacedSticker> = emptyList(),
     val color: Long = 0xFFF4C2CB,
     /** For daily pages: the epoch day this page belongs to. */
     val day: Long? = null,
@@ -154,11 +177,12 @@ data class Note(
             text.isNotBlank() -> text
             boxes.any { it.text.isNotBlank() } -> boxes.first { it.text.isNotBlank() }.text
             strokes.isNotEmpty() -> "Handwritten note"
+            stickers.isNotEmpty() -> "Sticker page"
             else -> "Empty note"
         }
     }
 
-    fun isEmpty(): Boolean = title.isBlank() && strokes.isEmpty() &&
+    fun isEmpty(): Boolean = title.isBlank() && strokes.isEmpty() && stickers.isEmpty() &&
         boxes.all { it.text.isBlank() } && blocks.all {
             when (it) {
                 is TextBlock -> it.text.isBlank()

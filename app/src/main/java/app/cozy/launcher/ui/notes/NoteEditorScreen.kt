@@ -42,6 +42,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.draw.rotate
+import app.cozy.launcher.data.PlacedSticker
+import app.cozy.launcher.ui.meadow.StickerImage
+import app.cozy.launcher.ui.meadow.StickerKinds
+import app.cozy.launcher.ui.meadow.Washi
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -113,7 +119,7 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 import androidx.compose.ui.graphics.drawscope.Stroke as DrawStroke
 
-private enum class Tool { TYPE, PEN, HIGHLIGHT, ERASER }
+private enum class Tool { TYPE, PEN, HIGHLIGHT, ERASER, STICKER }
 
 private val penColors = listOf(0xFF3A2E2A, 0xFFE0708A, 0xFF5B7DB1, 0xFF5E9C76)
 private const val HIGHLIGHT_COLOR = 0xFFF6D860
@@ -156,6 +162,10 @@ fun NoteEditorScreen(nav: Navigator, noteId: String) {
     val undo = remember { mutableStateListOf<String>() }
     val requesters = remember { mutableMapOf<String, FocusRequester>() }
     val boxBounds = remember { mutableMapOf<String, Rect>() }
+    val stickers = remember { mutableStateListOf<PlacedSticker>().apply { addAll(initial.stickers) } }
+    val stickerBounds = remember { mutableMapOf<String, Rect>() }
+    var stickerKind by remember { mutableStateOf(StickerKinds.first()) }
+    var selectedSticker by remember { mutableStateOf<String?>(null) }
     val pathCache = remember { IdentityHashMap<Stroke, Path>() }
 
     var tool by remember { mutableStateOf(Tool.TYPE) }
@@ -178,6 +188,7 @@ fun NoteEditorScreen(nav: Navigator, noteId: String) {
             blocks = blocks.toList(),
             strokes = strokes.toList(),
             boxes = boxes.toList(),
+            stickers = stickers.toList(),
             updatedAt = System.currentTimeMillis(),
         )
         meta = n
@@ -260,7 +271,41 @@ fun NoteEditorScreen(nav: Navigator, noteId: String) {
         else if (last.startsWith("box:")) {
             val id = last.removePrefix("box:")
             boxes.removeAll { it.id == id }
+        } else if (last.startsWith("sticker:")) {
+            val id = last.removePrefix("sticker:")
+            stickers.removeAll { it.id == id }
+            stickerBounds.remove(id)
         }
+        save()
+    }
+
+    fun placeSticker(pos: Offset) {
+        val size = 84f
+        val st = PlacedSticker(
+            kind = stickerKind,
+            x = (pos.x / density - size / 2).coerceAtLeast(0f),
+            y = (pos.y / density - size / 2).coerceAtLeast(0f),
+            size = size,
+            rot = listOf(-8f, -4f, 3f, 7f).random(),
+        )
+        stickers.add(st)
+        undo.add("sticker:" + st.id)
+        save()
+    }
+
+    fun moveSticker(id: String, dx: Float, dy: Float) {
+        val j = stickers.indexOfFirst { it.id == id }
+        if (j < 0) return
+        val cur: PlacedSticker = stickers[j]
+        stickers[j] = cur.copy(x = (cur.x + dx).coerceAtLeast(0f), y = (cur.y + dy).coerceAtLeast(0f))
+        save()
+    }
+
+    fun moveBox(id: String, dx: Float, dy: Float) {
+        val j = boxes.indexOfFirst { it.id == id }
+        if (j < 0) return
+        val cur: TextBox = boxes[j]
+        boxes[j] = cur.copy(x = (cur.x + dx).coerceAtLeast(0f), y = (cur.y + dy).coerceAtLeast(0f))
         save()
     }
 
@@ -295,7 +340,7 @@ fun NoteEditorScreen(nav: Navigator, noteId: String) {
 
     val maxInkY = max(
         strokes.maxOfOrNull { s -> s.pts.filterIndexed { i, _ -> i % 2 == 1 }.maxOrNull() ?: 0f } ?: 0f,
-        boxes.maxOfOrNull { it.y } ?: 0f,
+        max(boxes.maxOfOrNull { it.y } ?: 0f, stickers.maxOfOrNull { it.y } ?: 0f),
     )
     val pageMinHeight = max(1500f, maxInkY + 600f).dp
     val startPad = if (meta.paper == "cornell") 116.dp else 36.dp
@@ -325,14 +370,29 @@ fun NoteEditorScreen(nav: Navigator, noteId: String) {
                     .background(if (p.eink) Color.White else Color(meta.paperColor))
                     .border(p.line, p.border, pageShape)
             ) {
-                Box(Modifier.fillMaxSize().verticalScroll(scroll, enabled = tool == Tool.TYPE)) {
+                Box(Modifier.fillMaxSize().verticalScroll(scroll, enabled = tool == Tool.TYPE || tool == Tool.STICKER)) {
                     Box(
                         Modifier.fillMaxWidth()
                             .heightIn(min = pageMinHeight)
-                            .drawBehind { drawPaper(meta.paper) }
+                            .drawBehind { drawPaper(meta.paper, paper = if (p.eink) Color.White else Color(meta.paperColor)) }
                             .pointerInput(tool, penColor, holdMs) {
                                 awaitEachGesture {
                                     val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                                    if (tool == Tool.STICKER) {
+                                        // Touching a sticker lets the sticker handle it (drag / select).
+                                        if (stickerBounds.values.any { it.contains(down.position) }) return@awaitEachGesture
+                                        var moved = false
+                                        while (true) {
+                                            val e = awaitPointerEvent(PointerEventPass.Initial)
+                                            val c = e.changes.firstOrNull { it.id == down.id } ?: break
+                                            if ((c.position - down.position).getDistance() > viewConfiguration.touchSlop) moved = true
+                                            if (!c.pressed) break
+                                        }
+                                        if (!moved) {
+                                            if (selectedSticker != null) selectedSticker = null else placeSticker(down.position)
+                                        }
+                                        return@awaitEachGesture
+                                    }
                                     val stylus = down.type == PointerType.Stylus || down.type == PointerType.Eraser
                                     // Fingers type and scroll, unless a drawing tool is picked.
                                     if (!stylus && tool == Tool.TYPE) return@awaitEachGesture
@@ -493,6 +553,27 @@ fun NoteEditorScreen(nav: Navigator, noteId: String) {
                             )
                         }
 
+                        // Stickers (under the ink, so she can write on them)
+                        stickers.forEach { st ->
+                          key(st.id) {
+                            StickerView(
+                                st = st,
+                                density = density,
+                                interactive = tool == Tool.STICKER,
+                                selected = selectedSticker == st.id,
+                                onSelect = { selectedSticker = st.id },
+                                onMove = { dx, dy -> moveSticker(st.id, dx, dy) },
+                                onDelete = {
+                                    stickers.removeAll { it.id == st.id }
+                                    stickerBounds.remove(st.id)
+                                    selectedSticker = null
+                                    save()
+                                },
+                                onBounds = { stickerBounds[st.id] = it },
+                            )
+                          }
+                        }
+
                         // Ink
                         Canvas(Modifier.matchParentSize()) {
                             fun pathOf(s: Stroke): Path = pathCache.getOrPut(s) { buildPath(s.pts.chunked(2).map { Offset(it[0] * density, it[1] * density) }) }
@@ -534,13 +615,17 @@ fun NoteEditorScreen(nav: Navigator, noteId: String) {
                                 focusNow = focusBox == box.id,
                                 onFocusHandled = { focusBox = null },
                                 onChange = { v -> boxes[i] = box.copy(text = v); save() },
-                                onMove = { dx, dy -> boxes[i] = box.copy(x = (box.x + dx).coerceAtLeast(0f), y = (box.y + dy).coerceAtLeast(0f)); save() },
+                                onMove = { dx, dy -> moveBox(box.id, dx, dy) },
                                 onDelete = { boxes.removeAll { it.id == box.id }; boxBounds.remove(box.id); save() },
                                 onBounds = { boxBounds[box.id] = it },
                             )
                           }
                         }
                     }
+                }
+                if (p.meadow) {
+                    Washi(Modifier.align(Alignment.TopStart).padding(start = 60.dp).offset(y = (-4).dp), Color(0xFFF4A6B8), 120.dp, -4f)
+                    Washi(Modifier.align(Alignment.TopEnd).padding(end = 150.dp).offset(y = (-4).dp), Color(0xFFB9D38F), 100.dp, 5f)
                 }
             }
 
@@ -590,6 +675,28 @@ fun NoteEditorScreen(nav: Navigator, noteId: String) {
                     }
                 }
                 Tool.ERASER -> Txt("Rub over any ink to erase it. The eraser end of your pen works too.", T.body(16), color = p.muted)
+                Tool.STICKER -> Column(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(p.card).border(p.line, p.border, RoundedCornerShape(24.dp))
+                        .padding(horizontal = 18.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Txt("Stickers", T.display(20, 500))
+                        Txt("tap one, then tap the page · drag to move · tap to remove", T.body(15), color = p.muted)
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        StickerKinds.forEach { k ->
+                            val on = stickerKind == k
+                            Box(
+                                Modifier.size(72.dp).clip(RoundedCornerShape(20.dp))
+                                    .background(if (on) p.blush else p.card)
+                                    .border(2.dp, if (on) p.ink else p.border, RoundedCornerShape(20.dp))
+                                    .clickable(onClickLabel = "$k sticker", role = Role.RadioButton) { stickerKind = k },
+                                contentAlignment = Alignment.Center,
+                            ) { StickerImage(k, 56.dp) }
+                        }
+                    }
+                }
             }
 
             // Toolbar
@@ -608,7 +715,8 @@ fun NoteEditorScreen(nav: Navigator, noteId: String) {
                 ToolButton("bullets", "Bulleted list", false) { tool = Tool.TYPE; toggleList(false) }
                 ToolButton("table", "Insert table", false) { tool = Tool.TYPE; addTable() }
                 ToolButton("text", "Add a text box", false) { addBox(48f, scroll.value / density + 140f) }
-                ToolButton("undo", "Undo ink", false) { doUndo() }
+                if (settings.stickers) ToolButton("sticker", "Stickers", tool == Tool.STICKER) { tool = if (tool == Tool.STICKER) Tool.TYPE else Tool.STICKER }
+                ToolButton("undo", "Undo", false) { doUndo() }
             }
         }
     }
@@ -825,6 +933,7 @@ private fun TextBoxView(
     val p = LocalPalette.current
     val keyboard = LocalSoftwareKeyboardController.current
     val fr = remember { FocusRequester() }
+    val move by rememberUpdatedState(onMove)
     var focused by remember { mutableStateOf(false) }
 
     LaunchedEffect(focusNow) {
@@ -875,7 +984,7 @@ private fun TextBoxView(
                         .pointerInput(Unit) {
                             detectDragGestures { change, drag ->
                                 change.consume()
-                                onMove(drag.x / density, drag.y / density)
+                                move(drag.x / density, drag.y / density)
                             }
                         },
                     contentAlignment = Alignment.Center,
@@ -890,3 +999,42 @@ private fun TextBoxView(
     }
 }
 
+
+@Composable
+private fun StickerView(
+    st: PlacedSticker,
+    density: Float,
+    interactive: Boolean,
+    selected: Boolean,
+    onSelect: () -> Unit,
+    onMove: (Float, Float) -> Unit,
+    onDelete: () -> Unit,
+    onBounds: (Rect) -> Unit,
+) {
+    val p = LocalPalette.current
+    val move by rememberUpdatedState(onMove)
+    val select by rememberUpdatedState(onSelect)
+    Box(
+        Modifier
+            .offset { IntOffset((st.x * density).roundToInt(), (st.y * density).roundToInt()) }
+            .size(st.size.dp)
+            .onGloballyPositioned { onBounds(it.boundsInParent()) }
+            .then(
+                if (interactive) Modifier.pointerInput(st.id) {
+                    detectDragGestures(onDragStart = { select() }) { change, drag ->
+                        change.consume()
+                        move(drag.x / density, drag.y / density)
+                    }
+                }.clickable(onClickLabel = "Select sticker", role = Role.Button) { select() } else Modifier
+            )
+    ) {
+        StickerImage(st.kind, st.size.dp, Modifier.rotate(st.rot))
+        if (interactive && selected) {
+            Box(
+                Modifier.align(Alignment.TopEnd).offset(x = 12.dp, y = (-12).dp).size(36.dp).clip(RoundedCornerShape(18.dp))
+                    .background(p.ink).clickable(onClickLabel = "Remove sticker", role = Role.Button, onClick = onDelete),
+                contentAlignment = Alignment.Center,
+            ) { CozyIcon("close", size = 18.dp, tint = p.onInk, weight = 2.6f) }
+        }
+    }
+}

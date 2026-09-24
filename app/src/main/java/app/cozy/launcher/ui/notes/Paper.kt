@@ -9,6 +9,12 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import app.cozy.launcher.ui.meadow.drawCloud
+import app.cozy.launcher.ui.meadow.drawDaisy
+import app.cozy.launcher.ui.meadow.drawGingham
+import app.cozy.launcher.ui.meadow.drawLace
+import app.cozy.launcher.ui.meadow.drawStrawberry
+import kotlin.random.Random
 
 private val lineColor = Color(0xFFD9CBBB)
 private val dotColor = Color(0xFFC4B2A0)
@@ -16,9 +22,58 @@ private val gridColor = Color(0xFFE3D6C7)
 private val marginColor = Color(0xFFF0A3B1)
 
 /** Draws the paper pattern behind a note. [top] leaves room for the title. */
-fun DrawScope.drawPaper(kind: String, top: Float = 0f) {
+fun DrawScope.drawPaper(kind: String, top: Float = 0f, paper: Color = Color(0xFFFFFDF8)) {
     val d = density
     when (kind) {
+        "picnic" -> {
+            val band = 64f * d
+            drawGingham(Offset.Zero, Size(size.width, band), 13f * d)
+            drawLace(band, size.width, paper)
+            val step = 36f * d
+            var y = band + 150f * d
+            while (y < size.height) {
+                drawLine(lineColor, Offset(0f, y), Offset(size.width, y), strokeWidth = 1.2f * d)
+                y += step
+            }
+        }
+        "garden" -> {
+            val step = 36f * d
+            var y = top + step
+            while (y < size.height - 70f * d) {
+                drawLine(lineColor, Offset(0f, y), Offset(size.width, y), strokeWidth = 1.2f * d)
+                y += step
+            }
+            val r = Random(21)
+            val base = size.height
+            repeat((size.width / (14f * d)).toInt()) {
+                val x = r.nextFloat() * size.width
+                val yy = base - 8f * d - r.nextFloat() * 50f * d
+                val c = listOf(Color.White, Color(0xFFF7AFC0), Color(0xFFFFE59A))[r.nextInt(3)]
+                drawLine(Color(0xFF7AB04B), Offset(x, base), Offset(x + (r.nextFloat() - 0.5f) * 6f * d, yy), 1.6f * d)
+                drawCircle(c, (2.4f + r.nextFloat() * 2.4f) * d, Offset(x, yy))
+            }
+            drawDaisy(40f * d, base - 44f * d, 13f * d)
+            drawDaisy(size.width - 52f * d, base - 50f * d, 15f * d)
+        }
+        "clouddot" -> {
+            val step = 24f * d
+            var y = step
+            while (y < size.height) {
+                var x = step
+                while (x < size.width) {
+                    drawCircle(dotColor, radius = 1.4f * d, center = Offset(x, y))
+                    x += step
+                }
+                y += step
+            }
+            drawCloud(size.width - 190f * d, 70f * d, 0.55f * d, shade = Color(0xFFE3EDF5))
+            drawCloud(size.width - 330f * d, 46f * d, 0.3f * d, shade = Color(0xFFE3EDF5))
+        }
+        "recipe" -> {
+            drawRoundRect(Color(0xFFF0A3B1), Offset(14f * d, 14f * d), Size(size.width - 28f * d, size.height - 28f * d), CornerRadius(18f * d),
+                style = Stroke(2f * d, pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(10f * d, 8f * d))))
+            drawStrawberry(size.width - 64f * d, 64f * d, 1.8f * d, stroke = 1.6f * d)
+        }
         "lined", "cornell" -> {
             val step = 36f * d
             var y = top + step
@@ -72,6 +127,41 @@ fun TemplateThumb(kind: String, modifier: Modifier = Modifier, paper: Color = Co
             drawRoundRect(c, topLeft = Offset(x, y), size = Size(width, h), cornerRadius = CornerRadius(h / 2))
 
         when (kind) {
+            "picnic" -> {
+                drawGingham(Offset(2f * d, 2f * d), Size(size.width - 4f * d, 34f * d), 8f * d)
+                drawLace(36f * d, size.width, paper)
+                for (i in 0 until 4) {
+                    val yy = 56f * d + i * 30f * d
+                    drawStrawberry(pad + 8f * d, yy, 0.55f * d, fill = if (i == 0) Color(0xFFE2524B) else paper, seeds = i == 0, dashed = i != 0, stroke = 1.2f * d)
+                    bar(pad + 22f * d, yy - 2f * d, (w - 22f * d) * listOf(1f, .8f, .6f, .75f)[i], 5f * d, lineColor)
+                }
+            }
+            "garden" -> {
+                var y = 18f * d
+                while (y < size.height - 34 * d) { drawLine(lineColor, Offset(4 * d, y), Offset(size.width - 4 * d, y), 1.2f * d); y += 18f * d }
+                val r = Random(5)
+                repeat(22) {
+                    val x = r.nextFloat() * size.width
+                    drawCircle(listOf(Color(0xFFF7AFC0), Color(0xFFFFE59A), Color(0xFF9CC96B))[r.nextInt(3)], (2f + r.nextFloat() * 2f) * d, Offset(x, size.height - 8f * d - r.nextFloat() * 20f * d))
+                }
+                drawDaisy(22f * d, size.height - 20f * d, 9f * d)
+            }
+            "clouddot" -> {
+                var y = 14f * d
+                while (y < size.height - 6 * d) {
+                    var x = 14f * d
+                    while (x < size.width - 6 * d) { drawCircle(dotColor, 1.3f * d, Offset(x, y)); x += 14f * d }
+                    y += 14f * d
+                }
+                drawCloud(size.width - 70f * d, 40f * d, 0.3f * d, shade = Color(0xFFE3EDF5))
+                drawCloud(26f * d, 30f * d, 0.18f * d, shade = Color(0xFFE3EDF5))
+            }
+            "recipe" -> {
+                drawStrawberry(pad + 8f * d, pad + 8f * d, 0.7f * d, stroke = 1.2f * d)
+                bar(pad + 24f * d, pad + 6f * d, 60f * d, 6f * d, ink)
+                for (i in 0 until 4) bar(pad, pad + (32 + i * 16) * d, w * listOf(.9f, .7f, .8f, .55f)[i], 4f * d, lineColor)
+                drawRoundRect(pink, Offset(pad, pad + 104f * d), Size(w, 30f * d), CornerRadius(6f * d))
+            }
             "lined" -> {
                 var y = 18f * d
                 while (y < size.height - 6 * d) { drawLine(lineColor, Offset(4 * d, y), Offset(size.width - 4 * d, y), 1.2f * d); y += 18f * d }

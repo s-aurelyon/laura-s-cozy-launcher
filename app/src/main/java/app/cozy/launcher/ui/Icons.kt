@@ -66,6 +66,8 @@ object Icons {
         "camera" to listOf(Part(rrect(3f, 7f, 18f, 13f, 3f)), Part("M9 7l1.5-3h3L15 7"), Part(circle(12f, 13.5f, 3.5f))),
         "chat" to listOf(Part("M4 5h16v11H9l-5 4z")),
         "globe" to listOf(Part(circle(12f, 12f, 9f)), Part("M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18")),
+        "sticker" to listOf(Part("M5 4h14a1 1 0 0 1 1 1v9l-6 6H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"), Part("M20 14h-5a1 1 0 0 0-1 1v5"), Part(circle(9.5f, 10f, 1f), true), Part(circle(14.5f, 10f, 1f), true), Part("M9.5 13.5q2.5 2 5 0")),
+        "palette" to listOf(Part("M12 3a9 9 0 1 0 0 18c1.4 0 2-1 2-2 0-1.5-1.3-1.8-1.3-3 0-1 0.8-1.8 1.8-1.8H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"), Part(circle(7.5f, 11f, 1.2f), true), Part(circle(10f, 7f, 1.2f), true), Part(circle(15f, 7f, 1.2f), true)),
         "phone" to listOf(Part(rrect(7f, 2.5f, 10f, 19f, 2.5f)), Part("M11 18h2")),
     )
 

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -52,6 +53,12 @@ import app.cozy.launcher.ui.RoundButton
 import app.cozy.launcher.ui.Screen
 import app.cozy.launcher.ui.SectionLabel
 import app.cozy.launcher.ui.home.Divider
+import app.cozy.launcher.ui.meadow.GinghamHeader
+import app.cozy.launcher.ui.meadow.MeadowBanner
+import app.cozy.launcher.ui.meadow.PaperTag
+import app.cozy.launcher.ui.meadow.SceneBunny
+import app.cozy.launcher.ui.meadow.drawBasket
+import app.cozy.launcher.ui.meadow.paperShadow
 import app.cozy.launcher.ui.pickDate
 import app.cozy.launcher.ui.pickTime
 import app.cozy.launcher.ui.theme.LocalPalette
@@ -102,9 +109,42 @@ fun RemindersScreen(nav: Navigator) {
         newRepeat = Repeat.NONE
     }
 
+    val left = todayItems.size
+    val pickedToday = all.count { it.done && it.doneAt != null && app.cozy.launcher.data.toLocalDateTime(it.doneAt).toLocalDate() == today }
+    val cheer = when {
+        left == 0 && pickedToday > 0 -> "All done for today. Proud of you!"
+        left == 0 -> "Nothing due today. Enjoy the calm!"
+        left == 1 -> "Just 1 left today. Almost there!"
+        else -> "$left left today. Little steps, you've got this."
+    }
+
     Page {
-        Column(Modifier.fillMaxSize().padding(horizontal = 40.dp, vertical = 36.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-            Header("Reminders", { nav.back() })
+        if (p.meadow) {
+            MeadowBanner(
+                300.dp, seed = 13, hy = 190.dp, dm = 42.dp, df = 80.dp,
+                bunnies = listOf(SceneBunny(0.15f, 292f, 0.95f), SceneBunny(0.4f, 288f, 0.7f, true)),
+            ) {
+                Row(Modifier.padding(start = 40.dp, top = 36.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    RoundButton("back", "Back", { nav.back() })
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        PaperTag(padding = PaddingValues(start = 22.dp, end = 22.dp, top = 8.dp, bottom = 10.dp)) {
+                            Txt("Reminders", T.display(38))
+                            Txt(
+                                when (pickedToday) { 0 -> "no strawberries picked yet"; 1 -> "1 strawberry picked today"; else -> "$pickedToday strawberries picked today" },
+                                T.hand(26), color = p.berry,
+                            )
+                        }
+                        PaperTag(padding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)) { Txt(cheer, T.body(16, 700)) }
+                    }
+                }
+                androidx.compose.foundation.Canvas(Modifier.align(Alignment.TopEnd).padding(top = 40.dp, end = 40.dp).size(200.dp, 190.dp)) {
+                    val u = size.width / 200f * 0.9f
+                    drawBasket(10f * u, 14f * u, u, pickedToday)
+                }
+            }
+        }
+        Column(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 40.dp, vertical = if (p.meadow) 20.dp else 36.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+            if (!p.meadow) Header("Reminders", { nav.back() })
 
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 SmartCard("sun", "Today", todayItems.size, filter == "today", Modifier.weight(1f)) { filter = "today" }
@@ -114,14 +154,7 @@ fun RemindersScreen(nav: Navigator) {
             }
 
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                val left = todayItems.size
-                val cheer = when {
-                    left == 0 && done.any { it.doneAt != null && app.cozy.launcher.data.toLocalDateTime(it.doneAt).toLocalDate() == today } -> "All done for today. Proud of you!"
-                    left == 0 -> "Nothing due today. Enjoy the calm!"
-                    left == 1 -> "Just 1 left today. Almost there!"
-                    else -> "$left left today. Little steps, you've got this."
-                }
-                Row(
+                if (!p.meadow) Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(p.mint)
                         .then(if (p.eink) Modifier.border(p.line, p.ink, RoundedCornerShape(26.dp)) else Modifier)
                         .padding(horizontal = 24.dp, vertical = 14.dp),
@@ -139,7 +172,8 @@ fun RemindersScreen(nav: Navigator) {
                         val overdue = todayItems.filter { it.dueDate()!!.isBefore(today) }
                         val due = todayItems.filter { it.dueDate() == today }
                         if (overdue.isNotEmpty()) Section("Overdue", overdue, onEdit, onOpenNote)
-                        Section("Today", due, onEdit, onOpenNote, empty = "Nothing else due today.")
+                        val todayHoliday = Holidays.name(today)
+                        Section(if (p.meadow && todayHoliday != null) "Today · $todayHoliday" else "Today", due, onEdit, onOpenNote, empty = "Nothing else due today.", gingham = true)
                         val tomorrow = today.plusDays(1)
                         val tomorrowItems = scheduled.filter { it.dueDate() == tomorrow }
                         if (tomorrowItems.isNotEmpty()) {
@@ -263,8 +297,23 @@ private fun Section(
     onEdit: (Reminder) -> Unit,
     onOpenNote: (String) -> Unit,
     empty: String? = null,
+    gingham: Boolean = false,
 ) {
     val p = LocalPalette.current
+    if (p.meadow && gingham && title != null) {
+        val shape = RoundedCornerShape(26.dp)
+        Column(Modifier.fillMaxWidth().paperShadow(26.dp, p.border, 5.dp).clip(shape).background(p.card).border(2.dp, p.border, shape)) {
+            GinghamHeader(title)
+            if (items.isEmpty()) {
+                Txt(empty ?: "", T.hand(24), Modifier.padding(horizontal = 22.dp, vertical = 16.dp), color = p.muted)
+            }
+            items.forEachIndexed { i, r ->
+                ReminderRow(r, onEdit, onOpenNote)
+                if (i < items.lastIndex) Divider()
+            }
+        }
+        return
+    }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (title != null) Txt(title, T.display(24, 500))
         if (items.isEmpty()) {

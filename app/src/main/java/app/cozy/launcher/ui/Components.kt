@@ -128,7 +128,7 @@ fun RoundButton(
     }
 }
 
-enum class PillStyle { DARK, LIGHT, SOFT, DASHED, ACCENT }
+enum class PillStyle { DARK, LIGHT, SOFT, DASHED, ACCENT, BERRY }
 
 @Composable
 fun Pill(
@@ -148,9 +148,10 @@ fun Pill(
         PillStyle.SOFT -> p.soft
         PillStyle.DASHED -> Color.Transparent
         PillStyle.ACCENT -> p.accent
+        PillStyle.BERRY -> p.berry
     }
     val fg = when (style) {
-        PillStyle.DARK -> p.onInk
+        PillStyle.DARK, PillStyle.BERRY -> p.onInk
         PillStyle.DASHED -> p.muted
         else -> p.ink
     }
@@ -202,6 +203,14 @@ fun Toggle(checked: Boolean, onChange: (Boolean) -> Unit, description: String) {
 @Composable
 fun CheckMark(done: Boolean, onClick: () -> Unit, size: Dp = 30.dp, square: Boolean = false) {
     val p = LocalPalette.current
+    if (p.meadow) {
+        Box(
+            Modifier.size(size + 6.dp).clip(RoundedCornerShape(size))
+                .clickable(onClickLabel = if (done) "Mark as not done" else "Mark as done", role = Role.Checkbox, onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) { app.cozy.launcher.ui.meadow.StrawberryCheck(done, size + 6.dp) }
+        return
+    }
     val shape = RoundedCornerShape(if (square) size * 0.28f else size / 2)
     Box(
         Modifier

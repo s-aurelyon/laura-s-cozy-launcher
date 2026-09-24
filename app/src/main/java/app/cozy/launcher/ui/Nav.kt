@@ -7,6 +7,7 @@ sealed class Screen {
     data class Edit(val selectTile: String? = null) : Screen()
     data object AllApps : Screen()
     data object Settings : Screen()
+    data object Themes : Screen()
     data object Notes : Screen()
     data object Templates : Screen()
     data class Editor(val noteId: String) : Screen()

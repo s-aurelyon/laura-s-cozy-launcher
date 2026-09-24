@@ -9,8 +9,9 @@ with its own Notes, Reminders, Focus timer and Calendar built in.
   today's reminders and a mini focus timer. The pencil opens **Edit home**, where any tile
   can be renamed, given a new icon, pointed at a built-in app or any installed app, moved
   or removed. The grid button opens **All apps**.
-- **Notes**: folders, pinning, search, nine templates (blank, lined, dotted, grid,
-  checklist, table, daily page, weekly spread, Cornell), headings and text styles,
+- **Notes**: folders, pinning, search, thirteen templates (blank, lined, dotted, grid,
+  checklist, table, daily page, weekly spread, Cornell, plus picnic list, garden journal,
+  cloud dotted and recipe card), headings and text styles,
   checklists, bullet lists and tables.
   - **Pen**: the stylus always writes. **Hold the pen still for a moment and a text box
     appears with the keyboard.** A quick pen tap on a text box opens it for typing.
@@ -22,8 +23,18 @@ with its own Notes, Reminders, Focus timer and Calendar built in.
   a notification when time's up, and an option to keep the screen awake.
 - **Calendar**: a wall-calendar month view with South African public holidays,
   events, reminders and a daily page for any day.
-- **Settings** (Edit home → gear): name, colour, animations, e-ink mode for the Bigme,
-  week start, and how long the pen hold takes.
+- **Themes** (the palette button on the Meadow home, or Settings › Theme):
+  - **Cozy cream**: the original soft look.
+  - **Meadow**: painted skies, hills full of flowers, hopping bunnies, strawberry tick boxes,
+    a basket that fills as she ticks things off, a focus timer that's a strawberry milk
+    (matcha for breaks, honey for long breaks) filling up as she focuses, picnic gingham,
+    washi tape and meadow note papers. Scenes: sunny, strawberry picnic, golden hour and
+    starry night, or let the sky follow the time of day.
+  - **Paper**: black and white for the Bigme e-ink reader.
+- **Stickers** in notes: strawberry, bunny, cloud, daisy, matcha, basket, sun and heart.
+  Pick the sticker tool, choose one, tap the page. Drag to move, tap to remove.
+- **Settings** (Edit home → gear): name, colour, animations, theme, week start, and how
+  long the pen hold takes.
 
 Everything is stored privately on the device. Nothing goes online.
 

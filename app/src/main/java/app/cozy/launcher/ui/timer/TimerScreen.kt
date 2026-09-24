@@ -58,6 +58,11 @@ import app.cozy.launcher.ui.theme.Txt
 
 @Composable
 fun TimerScreen(nav: Navigator) {
+    if (LocalPalette.current.meadow) MeadowTimerScreen(nav) else CozyTimerScreen(nav)
+}
+
+@Composable
+private fun CozyTimerScreen(nav: Navigator) {
     val p = LocalPalette.current
     val timer by Store.timer.collectAsState()
     val settings by Store.settings.collectAsState()

@@ -18,6 +18,10 @@ object Templates {
         TemplateInfo("daily", "Daily page", "Schedule, to-dos, notes", "Planners", "dotted"),
         TemplateInfo("weekly", "Weekly spread", "Seven days at a glance", "Planners", "dotted"),
         TemplateInfo("cornell", "Cornell notes", "Cues, notes, summary", "Planners", "cornell"),
+        TemplateInfo("picnic", "Picnic list", "Gingham top, strawberry ticks", "Meadow", "picnic"),
+        TemplateInfo("garden", "Garden journal", "Lined, with a flower border", "Meadow", "garden"),
+        TemplateInfo("clouddot", "Cloud dotted", "Dots under little clouds", "Meadow", "clouddot"),
+        TemplateInfo("recipe", "Recipe card", "Ingredients and method", "Meadow", "recipe"),
     )
 
     fun info(id: String) = all.firstOrNull { it.id == id } ?: all.first()
@@ -28,6 +32,10 @@ object Templates {
         "dotted" to "Dotted paper",
         "grid" to "Grid paper",
         "cornell" to "Cornell paper",
+        "picnic" to "Picnic paper",
+        "garden" to "Garden paper",
+        "clouddot" to "Cloud paper",
+        "recipe" to "Recipe card",
     )
 
     val paperColors = listOf(0xFFFFFDF8, 0xFFFFFFFF, 0xFFFDEEF1, 0xFFEEF6F0, 0xFFFFF6DC)
@@ -79,6 +87,36 @@ object Templates {
                 TextBlock(text = "Summary", kind = TextKind.HEADING),
                 TextBlock(),
             )
+            "picnic" -> {
+                title = "Picnic"
+                blocks = listOf(
+                    TextBlock(text = "To pack", kind = TextKind.HEADING),
+                    CheckBlock(), CheckBlock(), CheckBlock(), CheckBlock(),
+                    TextBlock(text = "Who's coming", kind = TextKind.HEADING),
+                    TableBlock(rows = listOf(listOf("Name", "Bringing", "Coming?"), listOf("", "", ""), listOf("", "", ""))),
+                    TextBlock(),
+                )
+            }
+            "garden" -> {
+                title = date.format(DateTimeFormatter.ofPattern("EEEE d MMMM"))
+                blocks = listOf(
+                    TextBlock(text = "Today", kind = TextKind.HEADING),
+                    TextBlock(),
+                    TextBlock(text = "Little joys", kind = TextKind.HEADING),
+                    BulletBlock(), BulletBlock(), BulletBlock(),
+                )
+            }
+            "recipe" -> {
+                title = "Recipe"
+                blocks = listOf(
+                    TextBlock(text = "Ingredients", kind = TextKind.HEADING),
+                    BulletBlock(), BulletBlock(), BulletBlock(),
+                    TextBlock(text = "Method", kind = TextKind.HEADING),
+                    TextBlock(),
+                    TextBlock(text = "Notes", kind = TextKind.SUBHEADING),
+                    TextBlock(),
+                )
+            }
             else -> blocks = listOf(TextBlock())
         }
         return Note(

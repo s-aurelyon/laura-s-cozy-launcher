@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.cozy.launcher.ui.meadow.drawStrawberry
 import app.cozy.launcher.ui.theme.LocalAnimate
 import app.cozy.launcher.ui.theme.LocalPalette
 
@@ -42,6 +43,7 @@ fun Mascot(
     size: Dp = 150.dp,
     mood: Mood = Mood.HAPPY,
     bob: Boolean = true,
+    berry: Boolean = false,
 ) {
     val p = LocalPalette.current
     val animate = LocalAnimate.current
@@ -75,6 +77,13 @@ fun Mascot(
         scale(s, s, pivot = Offset.Zero) {
             translate(top = dy) {
                 drawMascot(ink, body, blush, mood, eye)
+                if (berry) {
+                    drawStrawberry(60f, 94f, 1.15f, stroke = 2.6f, ink = ink)
+                    drawOval(body, Offset(39f, 91f), Size(14f, 10f))
+                    drawOval(ink, Offset(39f, 91f), Size(14f, 10f), style = Stroke(2.5f))
+                    drawOval(body, Offset(67f, 91f), Size(14f, 10f))
+                    drawOval(ink, Offset(67f, 91f), Size(14f, 10f), style = Stroke(2.5f))
+                }
             }
         }
     }

@@ -16,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.toArgb
 import app.cozy.launcher.data.Focus
 import app.cozy.launcher.data.Store
+import app.cozy.launcher.data.themeId
 import app.cozy.launcher.ui.Navigator
 import app.cozy.launcher.ui.Screen
 import app.cozy.launcher.ui.calendar.CalendarScreen
@@ -23,6 +24,7 @@ import app.cozy.launcher.ui.home.AllAppsScreen
 import app.cozy.launcher.ui.home.EditScreen
 import app.cozy.launcher.ui.home.HomeScreen
 import app.cozy.launcher.ui.home.SettingsScreen
+import app.cozy.launcher.ui.home.ThemesScreen
 import app.cozy.launcher.ui.notes.NoteEditorScreen
 import app.cozy.launcher.ui.notes.NotesScreen
 import app.cozy.launcher.ui.notes.TemplatesScreen
@@ -52,7 +54,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val settings by Store.settings.collectAsState()
-            CozyTheme(accent = settings.accent, eink = settings.eink, animations = settings.animations) {
+            CozyTheme(theme = settings.themeId(), accent = settings.accent, animations = settings.animations) {
                 val palette = LocalPalette.current
                 LaunchedEffect(palette.bg) {
                     window.statusBarColor = palette.bg.toArgb()
@@ -78,6 +80,7 @@ class MainActivity : ComponentActivity() {
                         is Screen.Edit -> EditScreen(nav, screen.selectTile)
                         Screen.AllApps -> AllAppsScreen(nav)
                         Screen.Settings -> SettingsScreen(nav)
+                        Screen.Themes -> ThemesScreen(nav)
                         Screen.Notes -> NotesScreen(nav)
                         Screen.Templates -> TemplatesScreen(nav)
                         is Screen.Editor -> NoteEditorScreen(nav, screen.noteId)

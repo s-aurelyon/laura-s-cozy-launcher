@@ -55,6 +55,23 @@ import java.time.format.DateTimeFormatter
 
 @Composable
 fun HomeScreen(nav: Navigator) {
+    if (LocalPalette.current.meadow) MeadowHomeScreen(nav) else CozyHomeScreen(nav)
+}
+
+/** Opens what a tile points at: another app, a built-in app, or edit mode if it points at nothing. */
+fun openTile(ctx: android.content.Context, nav: Navigator, tile: Tile) {
+    when {
+        tile.pkg != null -> if (!Apps.launch(ctx, tile.pkg)) {
+            Toast.makeText(ctx, "That app isn't installed any more. Pick another one.", Toast.LENGTH_LONG).show()
+            nav.go(Screen.Edit(tile.id))
+        }
+        tile.builtin != null -> nav.openBuiltin(tile.builtin)
+        else -> nav.go(Screen.Edit(tile.id))
+    }
+}
+
+@Composable
+private fun CozyHomeScreen(nav: Navigator) {
     val p = LocalPalette.current
     val ctx = LocalContext.current
     val settings by Store.settings.collectAsState()
@@ -77,16 +94,6 @@ fun HomeScreen(nav: Navigator) {
         else -> "Good evening"
     }
 
-    fun openTile(tile: Tile) {
-        when {
-            tile.pkg != null -> if (!Apps.launch(ctx, tile.pkg)) {
-                Toast.makeText(ctx, "That app isn't installed any more. Pick another one.", Toast.LENGTH_LONG).show()
-                nav.go(Screen.Edit(tile.id))
-            }
-            tile.builtin != null -> nav.openBuiltin(tile.builtin)
-            else -> nav.go(Screen.Edit(tile.id))
-        }
-    }
 
     Page {
         Column(
@@ -107,7 +114,7 @@ fun HomeScreen(nav: Navigator) {
             MascotCard(bubbleText(todays.size, todaysEvents.firstOrNull()?.title, today, Focus.isRunning(timer)))
 
             // Tiles
-            TileGrid(settings.tiles, ::openTile)
+            TileGrid(settings.tiles) { openTile(ctx, nav, it) }
 
             // Today + focus timer
             Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
@@ -146,7 +153,7 @@ fun HomeScreen(nav: Navigator) {
     }
 }
 
-private fun bubbleText(reminders: Int, eventTitle: String?, today: LocalDate, timerRunning: Boolean): String {
+internal fun bubbleText(reminders: Int, eventTitle: String?, today: LocalDate, timerRunning: Boolean): String {
     val first = when (reminders) {
         0 -> "Nothing on your list today"
         1 -> "You have 1 reminder today"

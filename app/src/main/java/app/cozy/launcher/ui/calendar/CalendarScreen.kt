@@ -55,6 +55,14 @@ import app.cozy.launcher.ui.Chip
 import app.cozy.launcher.ui.Tag
 import app.cozy.launcher.ui.pickTime
 import app.cozy.launcher.ui.reminders.AddReminderDialog
+import app.cozy.launcher.ui.meadow.MeadowBanner
+import app.cozy.launcher.ui.meadow.PaperTag
+import app.cozy.launcher.ui.meadow.SceneBunny
+import app.cozy.launcher.ui.meadow.SceneCloud
+import app.cozy.launcher.ui.meadow.Washi
+import app.cozy.launcher.ui.meadow.drawHandCircle
+import app.cozy.launcher.ui.meadow.drawStrawberry
+import app.cozy.launcher.ui.meadow.notebookLines
 import app.cozy.launcher.ui.theme.LocalPalette
 import app.cozy.launcher.ui.theme.T
 import app.cozy.launcher.ui.theme.Txt
@@ -102,11 +110,36 @@ fun CalendarScreen(nav: Navigator) {
     }
 
     Page {
-        Column(
-            Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 40.dp, vertical = 36.dp),
+        Column(Modifier.verticalScroll(rememberScrollState())) {
+          if (p.meadow) {
+            MeadowBanner(
+                330.dp, seed = 19, hy = 210.dp, dm = 40.dp, df = 78.dp,
+                tall = SceneCloud(0.7f, 0f, 0.95f),
+                bunnies = listOf(SceneBunny(0.59f, 318f, 0.8f)),
+            ) {
+                Row(
+                    Modifier.fillMaxWidth().padding(start = 40.dp, end = 40.dp, top = 36.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    RoundButton("back", "Back", { nav.back() })
+                    Spacer(Modifier.weight(1f))
+                    Pill("Today", { month = YearMonth.from(today); selected = today }, style = PillStyle.LIGHT)
+                    RoundButton("back", "Previous month", { month = month.minusMonths(1) })
+                    RoundButton("forward", "Next month", { month = month.plusMonths(1) })
+                }
+                PaperTag(Modifier.padding(start = 40.dp, top = 118.dp), padding = PaddingValues(start = 24.dp, end = 24.dp, top = 10.dp, bottom = 14.dp)) {
+                    val season = when (month.monthValue) { 9, 10, 11 -> "SPRING"; 12, 1, 2 -> "SUMMER"; 3, 4, 5 -> "AUTUMN"; else -> "WINTER" }
+                    Txt("$season · ${month.year}", T.body(15, 800), color = p.muted)
+                    Txt(month.month.getDisplayName(TextStyle.FULL, Locale.getDefault()), T.serif(56, 500, italic = true), maxLines = 1)
+                }
+            }
+          }
+          Column(
+            Modifier.padding(horizontal = 40.dp, vertical = if (p.meadow) 26.dp else 36.dp),
             verticalArrangement = Arrangement.spacedBy(22.dp),
-        ) {
-            Header("Calendar", { nav.back() }) {
+          ) {
+            if (!p.meadow) Header("Calendar", { nav.back() }) {
                 Pill("Today", { month = YearMonth.from(today); selected = today }, style = PillStyle.LIGHT)
                 RoundButton("back", "Previous month", { month = month.minusMonths(1) })
                 RoundButton("forward", "Next month", { month = month.plusMonths(1) })
@@ -118,7 +151,7 @@ fun CalendarScreen(nav: Navigator) {
                 Column(
                     Modifier.fillMaxWidth().clip(sheet).background(p.card).border(p.line, if (p.eink) p.ink else Color(0xFFE3D6C7), sheet)
                 ) {
-                    SeasonStrip(month)
+                    if (p.meadow) Spacer(Modifier.height(20.dp)) else SeasonStrip(month)
                     // Weekday names
                     Row(Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 14.dp)) {
                         for (i in 0 until 7) {
@@ -165,19 +198,29 @@ fun CalendarScreen(nav: Navigator) {
                 // Binding rings
                 Row(Modifier.fillMaxWidth().padding(horizontal = 40.dp).offset(y = (-14).dp), horizontalArrangement = Arrangement.SpaceBetween) {
                     repeat(12) {
-                        Box(Modifier.width(12.dp).height(28.dp).clip(RoundedCornerShape(6.dp)).background(p.muted))
+                        if (p.meadow) Box(Modifier.width(14.dp).height(30.dp).clip(RoundedCornerShape(7.dp)).background(p.bg).border(2.dp, p.dashed, RoundedCornerShape(7.dp)))
+                        else Box(Modifier.width(12.dp).height(28.dp).clip(RoundedCornerShape(6.dp)).background(p.muted))
                     }
                 }
             }
 
             // The selected day
             val dayEntries = entriesFor(selected)
-            Card(radius = 26.dp, spacing = 14.dp) {
+          Box {
+            Card(
+                if (p.meadow) Modifier.clip(RoundedCornerShape(26.dp)).background(p.card).notebookLines(step = 52.dp, margin = null, first = 70.dp) else Modifier,
+                color = if (p.meadow) Color.Transparent else p.card,
+                radius = 26.dp, spacing = 14.dp,
+                padding = if (p.meadow) PaddingValues(start = 28.dp, end = 28.dp, top = 30.dp, bottom = 24.dp) else PaddingValues(24.dp),
+            ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Txt(selected.format(DateTimeFormatter.ofPattern("EEEE d MMMM")), T.serif(28), Modifier.weight(1f))
                     if (selected == today) Tag("Today", p.accent)
                 }
-                if (dayEntries.isEmpty()) Txt("Nothing planned. A free day!", T.body(18), color = p.muted)
+                if (dayEntries.isEmpty()) {
+                    if (p.meadow) Txt("nothing planned. a free meadow day!", T.hand(28), color = p.muted)
+                    else Txt("Nothing planned. A free day!", T.body(18), color = p.muted)
+                }
                 dayEntries.forEach { e ->
                     Row(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
@@ -216,7 +259,10 @@ fun CalendarScreen(nav: Navigator) {
                     }, style = PillStyle.SOFT)
                 }
             }
+            if (p.meadow) Washi(Modifier.align(Alignment.TopCenter).offset(y = (-13).dp), Color(0xFFB9D38F), 110.dp, -3f)
+          }
             Spacer(Modifier.height(10.dp))
+          }
         }
     }
 
@@ -248,15 +294,21 @@ private fun DayCell(
     if (isSelected) m = m.border(2.5.dp, p.ink)
     Column(m.padding(8.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
         val numColor = when {
-            isToday -> p.onInk
+            isToday && !p.meadow -> p.onInk
             !inMonth -> Color(0xFF9A8A7E)
             weekend || holiday != null -> p.holiday
             else -> p.ink
         }
-        Box(
-            Modifier.size(34.dp).clip(RoundedCornerShape(17.dp)).background(if (isToday) p.ink else Color.Transparent),
-            contentAlignment = Alignment.Center,
-        ) { Txt(date.dayOfMonth.toString(), T.serif(20), color = numColor) }
+        Box(Modifier.fillMaxWidth()) {
+            Box(
+                Modifier.size(34.dp).clip(RoundedCornerShape(17.dp)).background(if (isToday && !p.meadow) p.ink else Color.Transparent),
+                contentAlignment = Alignment.Center,
+            ) { Txt(date.dayOfMonth.toString(), T.serif(20), color = numColor) }
+            if (isToday && p.meadow) Canvas(Modifier.offset(x = (-8).dp, y = (-6).dp).size(50.dp, 46.dp)) { drawHandCircle() }
+            if (p.meadow && inMonth && entries.any { it.kind == "Event" }) {
+                Canvas(Modifier.align(Alignment.TopEnd).size(26.dp, 30.dp)) { drawStrawberry(size.width / 2f, size.height / 2f - 2f * density, size.width / 28f, stroke = 1.4f * density) }
+            }
+        }
 
         if (inMonth) {
             val label: String?

@@ -38,6 +38,11 @@ data class Palette(
     val onInk: Color,
     val eink: Boolean,
     val line: Dp,
+    val meadow: Boolean = false,
+    /** Strong strawberry red for buttons. */
+    val berry: Color = Color(0xFFC2382F),
+    val skyCard: Color = Color(0xFFCFE8D8),
+    val skyBorder: Color = Color(0xFFCFE8D8),
 )
 
 fun cozyPalette(accent: Color) = Palette(
@@ -57,6 +62,28 @@ fun cozyPalette(accent: Color) = Palette(
     onInk = Color.White,
     eink = false,
     line = 2.dp,
+)
+
+fun meadowPalette() = Palette(
+    bg = Color(0xFFFFF8EC),
+    ink = Color(0xFF4A3A2E),
+    muted = Color(0xFF7A6656),
+    card = Color(0xFFFFFDF7),
+    border = Color(0xFFEADFCB),
+    soft = Color(0xFFF5EEE4),
+    accent = Color(0xFFF7C9CF),
+    mint = Color(0xFFCFE3B4),
+    blush = Color(0xFFFDEEF1),
+    dashed = Color(0xFFCBB9A6),
+    holiday = Color(0xFFA04A3E),
+    butter = Color(0xFFF8E4A8),
+    blushInk = Color(0xFFF0A3B1),
+    onInk = Color.White,
+    eink = false,
+    line = 2.dp,
+    meadow = true,
+    skyCard = Color(0xFFDCEEF7),
+    skyBorder = Color(0xFFC4DDEB),
 )
 
 fun einkPalette() = Palette(
@@ -91,12 +118,15 @@ object Fonts {
         private set
     var serif: FontFamily = FontFamily.Serif
         private set
+    var hand: FontFamily = FontFamily.Cursive
+        private set
     val mono: FontFamily = FontFamily.Monospace
 
     fun init(assets: AssetManager) {
         display = load(assets, "fredoka.ttf", null, FontFamily.SansSerif, 500, 600)
         body = load(assets, "nunito.ttf", null, FontFamily.SansSerif, 400, 600, 700, 800)
         serif = load(assets, "fraunces.ttf", "fraunces_italic.ttf", FontFamily.Serif, 500, 600)
+        hand = load(assets, "caveat.ttf", null, FontFamily.Cursive, 500, 700)
     }
 
     private fun exists(assets: AssetManager, file: String): Boolean = try {
@@ -134,6 +164,10 @@ object T {
             fontStyle = if (italic) FontStyle.Italic else FontStyle.Normal, lineHeight = (size * 1.15f).sp,
         )
 
+    /** Handwriting, for little notes from the mascot. */
+    fun hand(size: Int, weight: Int = 700) =
+        TextStyle(fontFamily = Fonts.hand, fontWeight = FontWeight(weight), fontSize = size.sp, lineHeight = (size * 1.2f).sp)
+
     fun mono(size: Int) = TextStyle(fontFamily = Fonts.mono, fontSize = size.sp, lineHeight = (size * 1.45f).sp)
 }
 
@@ -161,11 +195,15 @@ fun Txt(
 }
 
 @Composable
-fun CozyTheme(accent: Long, eink: Boolean, animations: Boolean, content: @Composable () -> Unit) {
-    val palette = if (eink) einkPalette() else cozyPalette(Color(accent))
+fun CozyTheme(theme: String, accent: Long, animations: Boolean, content: @Composable () -> Unit) {
+    val palette = when (theme) {
+        "paper" -> einkPalette()
+        "meadow" -> meadowPalette()
+        else -> cozyPalette(Color(accent))
+    }
     CompositionLocalProvider(
         LocalPalette provides palette,
-        LocalAnimate provides (animations && !eink),
+        LocalAnimate provides (animations && theme != "paper"),
         content = content,
     )
 }

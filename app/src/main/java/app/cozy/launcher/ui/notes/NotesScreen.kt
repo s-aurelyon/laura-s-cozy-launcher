@@ -48,6 +48,16 @@ import app.cozy.launcher.ui.Screen
 import app.cozy.launcher.ui.SectionLabel
 import app.cozy.launcher.ui.Tag
 import app.cozy.launcher.ui.home.Divider
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.draw.rotate
+import app.cozy.launcher.ui.RoundButton
+import app.cozy.launcher.ui.meadow.MeadowBanner
+import app.cozy.launcher.ui.meadow.PaperTag
+import app.cozy.launcher.ui.meadow.SceneBunny
+import app.cozy.launcher.ui.meadow.Washi
+import app.cozy.launcher.ui.meadow.gingham
+import app.cozy.launcher.ui.meadow.notebookLines
+import app.cozy.launcher.ui.meadow.paperShadow
 import app.cozy.launcher.ui.theme.LocalPalette
 import app.cozy.launcher.ui.theme.T
 import app.cozy.launcher.ui.theme.Txt
@@ -77,10 +87,27 @@ fun NotesScreen(nav: Navigator) {
 
     Page {
         Column(
-            Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 40.dp, vertical = 36.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+            Modifier.verticalScroll(rememberScrollState()),
         ) {
-            Header("Notes", { nav.back() }) {
+          if (p.meadow) {
+            MeadowBanner(250.dp, seed = 7, hy = 170.dp, dm = 30.dp, df = 58.dp, bunnies = listOf(SceneBunny(0.9f, 246f, 0.7f, true))) {
+                Row(
+                    Modifier.fillMaxWidth().padding(start = 40.dp, end = 40.dp, top = 36.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    RoundButton("back", "Back", { nav.back() })
+                    PaperTag(padding = androidx.compose.foundation.layout.PaddingValues(horizontal = 22.dp, vertical = 8.dp)) { Txt("Notes", T.display(38)) }
+                    Spacer(Modifier.weight(1f))
+                    Pill("New note", { nav.go(Screen.Templates) }, style = PillStyle.BERRY, icon = "plus")
+                }
+            }
+          }
+          Column(
+            Modifier.padding(horizontal = 40.dp, vertical = if (p.meadow) 22.dp else 36.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+          ) {
+            if (!p.meadow) Header("Notes", { nav.back() }) {
                 Pill("New note", { nav.go(Screen.Templates) }, style = PillStyle.DARK, icon = "plus")
             }
             CozyField(search, { search = it }, "Search notes", Modifier.fillMaxWidth(), leadingIcon = "search")
@@ -93,7 +120,25 @@ fun NotesScreen(nav: Navigator) {
                 Pill("+ Folder", { addingFolder = true }, style = PillStyle.DASHED, textSize = 16)
             }
 
-            if (pinned.isNotEmpty()) {
+            if (pinned.isNotEmpty() && p.meadow) {
+                Column(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(30.dp)).gingham().padding(start = 26.dp, end = 26.dp, top = 22.dp, bottom = 30.dp),
+                    verticalArrangement = Arrangement.spacedBy(26.dp),
+                ) {
+                    Box(Modifier.clip(RoundedCornerShape(14.dp)).background(p.card).padding(horizontal = 14.dp, vertical = 6.dp)) {
+                        Txt("Pinned", T.body(16, 800))
+                    }
+                    pinned.chunked(2).forEach { pair ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(26.dp)) {
+                            pair.forEachIndexed { i, n ->
+                                MeadowPinnedCard(n, Modifier.weight(1f), if (i == 0) -1.5f else 1.2f, if (i == 0) Color(0xFFF4A6B8) else Color(0xFFB9D38F),
+                                    { nav.go(Screen.Editor(n.id)) }, { menuFor = n })
+                            }
+                            if (pair.size == 1) Spacer(Modifier.weight(1f))
+                        }
+                    }
+                }
+            } else if (pinned.isNotEmpty()) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     CozyIcon("pin", size = 18.dp, tint = p.muted)
                     SectionLabel("Pinned")
@@ -106,7 +151,14 @@ fun NotesScreen(nav: Navigator) {
                 }
             }
 
-            if (others.isNotEmpty()) {
+            if (others.isNotEmpty() && p.meadow) {
+                val nb = RoundedCornerShape(22.dp)
+                Column(Modifier.fillMaxWidth().clip(nb).background(p.card).border(2.dp, p.border, nb).notebookLines()) {
+                    Txt(if (folder != null) folder!!.lowercase() else "recent notes", T.hand(28), Modifier.height(52.dp).padding(start = 92.dp, top = 8.dp))
+                    others.forEach { n -> MeadowNoteRow(n, { nav.go(Screen.Editor(n.id)) }, { menuFor = n }) }
+                    Spacer(Modifier.height(12.dp))
+                }
+            } else if (others.isNotEmpty()) {
                 SectionLabel(if (folder != null) folder!! else "Recent")
                 Card(padding = androidx.compose.foundation.layout.PaddingValues(0.dp), spacing = 0.dp) {
                     others.forEachIndexed { i, n ->
@@ -131,6 +183,7 @@ fun NotesScreen(nav: Navigator) {
                 Mascot(size = 72.dp, bob = false)
                 Txt("Tip: hold your pen still on a page for a moment and a text box pops up with the keyboard.", T.body(18, 600), Modifier.weight(1f))
             }
+          }
         }
     }
 
@@ -146,6 +199,44 @@ fun NotesScreen(nav: Navigator) {
                 addingFolder = false
             }, { addingFolder = false })
         }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun MeadowPinnedCard(n: Note, modifier: Modifier, rot: Float, tape: Color, onOpen: () -> Unit, onMenu: () -> Unit) {
+    val p = LocalPalette.current
+    Box(modifier.rotate(rot)) {
+        Column(
+            Modifier.fillMaxWidth().paperShadow(6.dp, Color(0x244A3A2E), 6.dp).clip(RoundedCornerShape(6.dp)).background(p.card)
+                .combinedClickable(onClick = onOpen, onLongClick = onMenu)
+                .padding(start = 22.dp, end = 22.dp, top = 30.dp, bottom = 22.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Txt(n.title.ifBlank { "Untitled" }, T.display(22, 500), maxLines = 1)
+            Txt(n.previewText(), T.body(16), color = p.muted, maxLines = 3)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Tag(Templates.info(n.template).name)
+                val (done, total) = n.checkCounts()
+                if (total > 0) Tag("$done of $total ticked")
+            }
+        }
+        Washi(Modifier.align(Alignment.TopCenter).offset(y = (-12).dp), tape, 96.dp, -rot * 2f)
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun MeadowNoteRow(n: Note, onOpen: () -> Unit, onMenu: () -> Unit) {
+    val p = LocalPalette.current
+    Row(
+        Modifier.fillMaxWidth().height(52.dp).combinedClickable(onClick = onOpen, onLongClick = onMenu).padding(start = 92.dp, end = 24.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Txt(n.title.ifBlank { "Untitled" }, T.body(19, 700), maxLines = 1)
+        Txt("${relativeDay(n.updatedAt)} · ${n.previewText()}", T.body(16), Modifier.weight(1f), color = p.muted, maxLines = 1)
+        Tag(Templates.info(n.template).name)
     }
 }
 

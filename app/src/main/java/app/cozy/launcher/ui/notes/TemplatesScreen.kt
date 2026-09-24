@@ -53,7 +53,7 @@ fun TemplatesScreen(nav: Navigator) {
         Column(Modifier.padding(horizontal = 40.dp, vertical = 36.dp), verticalArrangement = Arrangement.spacedBy(22.dp)) {
             Header("Choose a template", { nav.back() })
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                listOf("All", "Paper", "Lists", "Planners").forEach { c -> Chip(c, category == c, { category = c }) }
+                listOf("All", "Paper", "Lists", "Planners", "Meadow").forEach { c -> Chip(c, category == c, { category = c }) }
             }
 
             Column(
