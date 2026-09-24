@@ -13,8 +13,10 @@ android {
         applicationId = "app.cozy.launcher"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        // GitHub passes the build number, so each new APK installs as an update.
+        val build = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
+        versionCode = build
+        versionName = "1.$build"
     }
 
     // A fixed key kept in the project, so every new build installs as an update

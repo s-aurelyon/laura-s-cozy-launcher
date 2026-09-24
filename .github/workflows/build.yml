@@ -4,6 +4,10 @@ on:
   push:
   workflow_dispatch:
 
+# Needed to publish the APK on the repository's Releases page.
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,12 +27,18 @@ jobs:
         run: bash scripts/fetch-fonts.sh
 
       - name: Build APK
-        run: gradle assembleRelease --no-daemon --stacktrace
+        run: gradle assembleRelease --no-daemon --stacktrace -PversionCode=${{ github.run_number }}
 
       - name: Rename APK
         run: cp app/build/outputs/apk/release/app-release.apk Cozy.apk
 
-      - uses: actions/upload-artifact@v4
+      # Releases don't count towards the Actions storage limit, and the newest one
+      # is always at  github.com/<you>/<repo>/releases/latest
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
         with:
-          name: Cozy-apk
-          path: Cozy.apk
+          tag_name: build-${{ github.run_number }}
+          name: Cozy build ${{ github.run_number }}
+          body: Download Cozy.apk below and open it on the tablet to install or update.
+          files: Cozy.apk
+          make_latest: true

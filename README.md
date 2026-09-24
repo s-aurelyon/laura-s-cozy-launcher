@@ -48,9 +48,11 @@ GitHub builds the app for free:
    everything from this folder. Include the hidden `.github` folder (on a Mac, press
    Cmd+Shift+. in Finder to show hidden files). Commit.
 3. Open the **Actions** tab. A build called "Build Cozy APK" starts by itself and takes
-   about 5 minutes. When it has a green tick, open it and download **Cozy-apk** at the
-   bottom of the page. Unzip it to get `Cozy.apk`.
-4. Get `Cozy.apk` onto the tablet (Google Drive, email, USB cable), tap it, and allow
+   about 5 minutes. When it has a green tick, go to the repository's **Releases** page
+   (right-hand side of the repository's main page) and download **Cozy.apk** from the
+   newest release. The newest one is always at `github.com/<you>/<repo>/releases/latest`.
+4. Easiest: open that Releases link in the tablet's browser (signed in to GitHub) and download
+   it there. Otherwise use Google Drive or a USB cable (Gmail blocks APKs). Tap it, and allow
    "install unknown apps" when asked.
 5. Open Cozy, allow notifications, then Edit home → gear → **Make Cozy the home screen**
    and choose Cozy. (On Xiaomi: Settings › Apps › Default apps › Home app.)
