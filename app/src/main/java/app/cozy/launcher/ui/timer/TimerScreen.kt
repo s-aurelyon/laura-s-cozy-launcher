@@ -129,8 +129,9 @@ private fun CozyTimerScreen(nav: Navigator) {
             val ring = compact(360.dp, 270.dp)
             Box(Modifier.size(ring), contentAlignment = Alignment.Center) {
                 val ringColor = if (p.eink) p.ink else if (timer.mode == Focus.FOCUS) p.blushInk else Color(0xFF8FC7A6)
+                val ringWidth = compact(22.dp, 18.dp)
                 Canvas(Modifier.size(ring)) {
-                    val w = compact(22.dp, 18.dp).toPx()
+                    val w = ringWidth.toPx()
                     val inset = w / 2 + 4.dp.toPx()
                     val arcSize = Size(size.width - inset * 2, size.height - inset * 2)
                     drawCircle(Color.White, radius = size.width / 2 - inset)
