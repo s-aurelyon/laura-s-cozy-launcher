@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -52,6 +53,10 @@ import app.cozy.launcher.ui.PillStyle
 import app.cozy.launcher.ui.RoundButton
 import app.cozy.launcher.ui.Screen
 import app.cozy.launcher.ui.SectionLabel
+import app.cozy.launcher.ui.compact
+import app.cozy.launcher.ui.gutter
+import app.cozy.launcher.ui.gutterTop
+import app.cozy.launcher.ui.theme.LocalCompact
 import app.cozy.launcher.ui.home.Divider
 import app.cozy.launcher.ui.meadow.GinghamHeader
 import app.cozy.launcher.ui.meadow.MeadowBanner
@@ -118,51 +123,76 @@ fun RemindersScreen(nav: Navigator) {
         else -> "$left left today. Little steps, you've got this."
     }
 
+    val phone = LocalCompact.current
     Page {
         if (p.meadow) {
             MeadowBanner(
-                300.dp, seed = 13, hy = 190.dp, dm = 42.dp, df = 80.dp,
-                bunnies = listOf(SceneBunny(0.15f, 292f, 0.95f), SceneBunny(0.4f, 288f, 0.7f, true)),
+                compact(300.dp, 236.dp), seed = 13, hy = compact(190.dp, 150.dp), dm = compact(42.dp, 30.dp), df = compact(80.dp, 60.dp),
+                bunnies = if (phone) listOf(SceneBunny(0.12f, 228f, 0.7f), SceneBunny(0.3f, 225f, 0.5f, true))
+                else listOf(SceneBunny(0.15f, 292f, 0.95f), SceneBunny(0.4f, 288f, 0.7f, true)),
             ) {
-                Row(Modifier.padding(start = 40.dp, top = 36.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                Row(Modifier.padding(start = gutter, top = gutterTop), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(compact(14.dp, 8.dp))) {
                     RoundButton("back", "Back", { nav.back() })
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        PaperTag(padding = PaddingValues(start = 22.dp, end = 22.dp, top = 8.dp, bottom = 10.dp)) {
-                            Txt("Reminders", T.display(38))
+                    Column(verticalArrangement = Arrangement.spacedBy(compact(12.dp, 8.dp))) {
+                        PaperTag(padding = if (phone) PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 8.dp) else PaddingValues(start = 22.dp, end = 22.dp, top = 8.dp, bottom = 10.dp)) {
+                            Txt("Reminders", T.display(compact(38, 28)))
                             Txt(
                                 when (pickedToday) { 0 -> "no strawberries picked yet"; 1 -> "1 strawberry picked today"; else -> "$pickedToday strawberries picked today" },
-                                T.hand(26), color = p.berry,
+                                T.hand(compact(26, 20)), color = p.berry,
                             )
                         }
-                        PaperTag(padding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)) { Txt(cheer, T.body(16, 700)) }
+                        PaperTag(
+                            if (phone) Modifier.widthIn(max = 210.dp) else Modifier,
+                            padding = PaddingValues(horizontal = compact(14.dp, 12.dp), vertical = compact(8.dp, 6.dp)),
+                        ) { Txt(cheer, T.body(compact(16, 13), 700)) }
                     }
                 }
-                androidx.compose.foundation.Canvas(Modifier.align(Alignment.TopEnd).padding(top = 40.dp, end = 40.dp).size(200.dp, 190.dp)) {
+                // The basket fills with strawberries as she ticks things off
+                val basket = if (phone) Modifier.align(Alignment.BottomEnd).padding(bottom = 18.dp, end = 12.dp).size(96.dp, 91.dp)
+                else Modifier.align(Alignment.TopEnd).padding(top = 40.dp, end = 40.dp).size(200.dp, 190.dp)
+                androidx.compose.foundation.Canvas(basket) {
                     val u = size.width / 200f * 0.9f
                     drawBasket(10f * u, 14f * u, u, pickedToday)
                 }
             }
         }
-        Column(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 40.dp, vertical = if (p.meadow) 20.dp else 36.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        Column(
+            Modifier.weight(1f).fillMaxWidth().padding(horizontal = gutter, vertical = if (p.meadow) compact(20.dp, 14.dp) else gutterTop),
+            verticalArrangement = Arrangement.spacedBy(compact(20.dp, 14.dp)),
+        ) {
             if (!p.meadow) Header("Reminders", { nav.back() })
 
-            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                SmartCard("sun", "Today", todayItems.size, filter == "today", Modifier.weight(1f)) { filter = "today" }
-                SmartCard("calendar", "Scheduled", scheduled.size, filter == "scheduled", Modifier.weight(1f)) { filter = "scheduled" }
-                SmartCard("list", "All", open.size, filter == "all", Modifier.weight(1f)) { filter = "all" }
-                SmartCard("circlecheck", "Done", done.size, filter == "done", Modifier.weight(1f)) { filter = "done" }
+            if (phone) {
+                // Two by two on a phone, so the names fit
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SmartCard("sun", "Today", todayItems.size, filter == "today", Modifier.weight(1f)) { filter = "today" }
+                        SmartCard("calendar", "Scheduled", scheduled.size, filter == "scheduled", Modifier.weight(1f)) { filter = "scheduled" }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SmartCard("list", "All", open.size, filter == "all", Modifier.weight(1f)) { filter = "all" }
+                        SmartCard("circlecheck", "Done", done.size, filter == "done", Modifier.weight(1f)) { filter = "done" }
+                    }
+                }
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    SmartCard("sun", "Today", todayItems.size, filter == "today", Modifier.weight(1f)) { filter = "today" }
+                    SmartCard("calendar", "Scheduled", scheduled.size, filter == "scheduled", Modifier.weight(1f)) { filter = "scheduled" }
+                    SmartCard("list", "All", open.size, filter == "all", Modifier.weight(1f)) { filter = "all" }
+                    SmartCard("circlecheck", "Done", done.size, filter == "done", Modifier.weight(1f)) { filter = "done" }
+                }
             }
 
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(compact(20.dp, 14.dp))) {
                 if (!p.meadow) Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(p.mint)
                         .then(if (p.eink) Modifier.border(p.line, p.ink, RoundedCornerShape(26.dp)) else Modifier)
-                        .padding(horizontal = 24.dp, vertical = 14.dp),
+                        .padding(horizontal = compact(24.dp, 16.dp), vertical = compact(14.dp, 10.dp)),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(18.dp),
+                    horizontalArrangement = Arrangement.spacedBy(compact(18.dp, 12.dp)),
                 ) {
-                    Mascot(size = 68.dp, bob = false)
-                    Txt(cheer, T.body(19, 600), Modifier.weight(1f))
+                    Mascot(size = compact(68.dp, 50.dp), bob = false)
+                    Txt(cheer, T.body(compact(19, 15), 600), Modifier.weight(1f))
                 }
 
                 val onEdit = { r: Reminder -> editing = r }
@@ -222,7 +252,7 @@ fun RemindersScreen(nav: Navigator) {
             }
 
             // Add bar
-            Card(border = p.ink, radius = 26.dp, padding = PaddingValues(20.dp), spacing = 12.dp) {
+            Card(border = p.ink, radius = 26.dp, padding = PaddingValues(compact(20.dp, 14.dp)), spacing = compact(12.dp, 10.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     CozyField(
                         newTitle, { newTitle = it }, "New reminder…", Modifier.weight(1f),
@@ -271,16 +301,25 @@ fun RemindersScreen(nav: Navigator) {
 @Composable
 private fun SmartCard(icon: String, label: String, count: Int, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val p = LocalPalette.current
-    val shape = RoundedCornerShape(22.dp)
+    val shape = RoundedCornerShape(compact(22.dp, 18.dp))
+    val fg = if (selected) p.onInk else p.ink
+    val box = modifier.clip(shape)
+        .background(if (selected) p.ink else p.card)
+        .border(p.line, if (selected) p.ink else p.border, shape)
+        .clickable(onClickLabel = label, role = Role.Tab, onClick = onClick)
+    if (LocalCompact.current) {
+        // One line on a phone: icon, name, count
+        Row(box.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            CozyIcon(icon, size = 20.dp, tint = fg)
+            Txt(label, T.body(15, 700), Modifier.weight(1f), color = fg, maxLines = 1)
+            Txt("$count", T.display(20), color = fg)
+        }
+        return
+    }
     Column(
-        modifier.clip(shape)
-            .background(if (selected) p.ink else p.card)
-            .border(p.line, if (selected) p.ink else p.border, shape)
-            .clickable(onClickLabel = label, role = Role.Tab, onClick = onClick)
-            .padding(18.dp),
+        box.padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        val fg = if (selected) p.onInk else p.ink
         Row(verticalAlignment = Alignment.CenterVertically) {
             CozyIcon(icon, size = 26.dp, tint = fg)
             Box(Modifier.weight(1f))
@@ -334,22 +373,22 @@ private fun ReminderRow(r: Reminder, onEdit: (Reminder) -> Unit, onOpenNote: (St
     val p = LocalPalette.current
     val today = LocalDate.now()
     Row(
-        Modifier.fillMaxWidth().clickable(onClickLabel = "Edit reminder") { onEdit(r) }.padding(horizontal = 22.dp, vertical = 16.dp),
+        Modifier.fillMaxWidth().clickable(onClickLabel = "Edit reminder") { onEdit(r) }.padding(horizontal = compact(22.dp, 14.dp), vertical = compact(16.dp, 12.dp)),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(compact(16.dp, 10.dp)),
     ) {
-        CheckMark(r.done, { Store.toggleReminder(r.id) }, size = 32.dp)
+        CheckMark(r.done, { Store.toggleReminder(r.id) }, size = compact(32.dp, 28.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Txt(r.title, T.body(20, 600), color = if (r.done) p.muted else p.ink, strike = r.done, maxLines = 2)
+            Txt(r.title, T.body(compact(20, 17), 600), color = if (r.done) p.muted else p.ink, strike = r.done, maxLines = 2)
             val meta = listOfNotNull(
                 r.list,
                 if (r.repeat != Repeat.NONE) "repeats ${repeatLabel(r.repeat).lowercase()}" else null,
                 if (r.noteId != null) "linked note" else null,
             ).joinToString(" · ")
-            if (meta.isNotEmpty()) Txt(meta, T.body(15), color = p.muted, maxLines = 1)
+            if (meta.isNotEmpty()) Txt(meta, T.body(compact(15, 13)), color = p.muted, maxLines = 1)
         }
         if (r.noteId != null && Store.note(r.noteId) != null) {
-            RoundButton("notes", "Open linked note", { onOpenNote(r.noteId) }, size = 42.dp)
+            RoundButton("notes", "Open linked note", { onOpenNote(r.noteId) }, size = compact(42.dp, 36.dp))
         }
         val d = r.dueDateTime()
         val label = when {
@@ -358,6 +397,6 @@ private fun ReminderRow(r: Reminder, onEdit: (Reminder) -> Unit, onOpenNote: (St
             d.toLocalDate().isBefore(today) -> d.format(DateTimeFormatter.ofPattern("d MMM"))
             else -> d.format(DateTimeFormatter.ofPattern(if (r.hasTime) "EEE HH:mm" else "EEE d MMM"))
         }
-        Txt(label, T.body(18, 700), color = if (d != null && d.toLocalDate().isBefore(today) && !r.done) p.holiday else p.ink)
+        Txt(label, T.body(compact(18, 15), 700), color = if (d != null && d.toLocalDate().isBefore(today) && !r.done) p.holiday else p.ink)
     }
 }

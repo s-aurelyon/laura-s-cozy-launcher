@@ -48,6 +48,8 @@ import app.cozy.launcher.data.PlacedSticker
 import app.cozy.launcher.ui.meadow.StickerImage
 import app.cozy.launcher.ui.meadow.StickerKinds
 import app.cozy.launcher.ui.meadow.Washi
+import app.cozy.launcher.ui.compact
+import app.cozy.launcher.ui.theme.LocalCompact
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -343,13 +345,15 @@ fun NoteEditorScreen(nav: Navigator, noteId: String) {
         max(boxes.maxOfOrNull { it.y } ?: 0f, stickers.maxOfOrNull { it.y } ?: 0f),
     )
     val pageMinHeight = max(1500f, maxInkY + 600f).dp
-    val startPad = if (meta.paper == "cornell") 116.dp else 36.dp
+    val sidePad = compact(36.dp, 20.dp)
+    val startPad = if (meta.paper == "cornell") 116.dp else sidePad
     val focusedKind = (blocks.firstOrNull { it.id == focusedId } as? TextBlock)?.kind
 
+    val phone = LocalCompact.current
     Page {
-        Column(Modifier.fillMaxSize().padding(horizontal = 28.dp, vertical = 22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(Modifier.fillMaxSize().padding(horizontal = compact(28.dp, 10.dp), vertical = compact(22.dp, 12.dp)), verticalArrangement = Arrangement.spacedBy(compact(14.dp, 10.dp))) {
             // Top bar
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(compact(10.dp, 6.dp))) {
                 Pill("Notes", { nav.back() }, style = PillStyle.LIGHT, icon = "back")
                 Spacer(Modifier.weight(1f))
                 RoundButton("pin", if (meta.pinned) "Unpin" else "Pin", {
@@ -469,7 +473,7 @@ fun NoteEditorScreen(nav: Navigator, noteId: String) {
                     ) {
                         // Typed content
                         Column(
-                            Modifier.fillMaxWidth().padding(start = startPad, end = 36.dp, top = 32.dp),
+                            Modifier.fillMaxWidth().padding(start = startPad, end = sidePad, top = compact(32.dp, 24.dp)),
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             BasicTextField(
@@ -632,7 +636,7 @@ fun NoteEditorScreen(nav: Navigator, noteId: String) {
             // Text styles (typing) or pen colours (drawing)
             when (tool) {
                 Tool.TYPE -> Row(
-                    Modifier.clip(RoundedCornerShape(22.dp)).background(p.card).border(p.line, p.border, RoundedCornerShape(22.dp)).padding(6.dp),
+                    Modifier.horizontalScroll(rememberScrollState()).clip(RoundedCornerShape(22.dp)).background(p.card).border(p.line, p.border, RoundedCornerShape(22.dp)).padding(6.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     listOf(TextKind.TITLE to "Title", TextKind.HEADING to "Heading", TextKind.SUBHEADING to "Subheading", TextKind.BODY to "Body", TextKind.MONO to "Mono")
@@ -641,7 +645,7 @@ fun NoteEditorScreen(nav: Navigator, noteId: String) {
                             Box(
                                 Modifier.clip(RoundedCornerShape(16.dp)).background(if (on) p.ink else Color.Transparent)
                                     .clickable(onClickLabel = label, role = Role.Button) { applyStyle(kind) }
-                                    .padding(horizontal = 16.dp, vertical = 9.dp)
+                                    .padding(horizontal = compact(16.dp, 12.dp), vertical = 9.dp)
                             ) {
                                 val style = when (kind) {
                                     TextKind.TITLE -> T.display(20)
@@ -668,13 +672,13 @@ fun NoteEditorScreen(nav: Navigator, noteId: String) {
                                     .clickable(onClickLabel = "Pen colour", role = Role.RadioButton) { penColor = c }
                             )
                         }
-                        Txt("Your finger draws too while the pen tool is on.", T.body(15), color = p.muted)
+                        if (!phone) Txt("Your finger draws too while the pen tool is on.", T.body(15), color = p.muted)
                     } else {
                         Box(Modifier.size(34.dp).clip(RoundedCornerShape(17.dp)).background(Color(HIGHLIGHT_COLOR)))
                         Txt("Highlighter", T.body(16, 700))
                     }
                 }
-                Tool.ERASER -> Txt("Rub over any ink to erase it. The eraser end of your pen works too.", T.body(16), color = p.muted)
+                Tool.ERASER -> Txt("Rub over any ink to erase it. The eraser end of your pen works too.", T.body(compact(16, 14)), color = p.muted)
                 Tool.STICKER -> Column(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(p.card).border(p.line, p.border, RoundedCornerShape(24.dp))
                         .padding(horizontal = 18.dp, vertical = 14.dp),
@@ -682,28 +686,34 @@ fun NoteEditorScreen(nav: Navigator, noteId: String) {
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Txt("Stickers", T.display(20, 500))
-                        Txt("tap one, then tap the page · drag to move · tap to remove", T.body(15), color = p.muted)
+                        Txt("tap one, then tap the page · drag to move · tap to remove", T.body(compact(15, 13)), color = p.muted)
                     }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    // A scrolling strip on a phone, spread across the bar on the tablet
+                    Row(
+                        if (phone) Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()) else Modifier.fillMaxWidth(),
+                        horizontalArrangement = if (phone) Arrangement.spacedBy(8.dp) else Arrangement.SpaceBetween,
+                    ) {
                         StickerKinds.forEach { k ->
                             val on = stickerKind == k
                             Box(
-                                Modifier.size(72.dp).clip(RoundedCornerShape(20.dp))
+                                Modifier.size(compact(72.dp, 56.dp)).clip(RoundedCornerShape(compact(20.dp, 16.dp)))
                                     .background(if (on) p.blush else p.card)
-                                    .border(2.dp, if (on) p.ink else p.border, RoundedCornerShape(20.dp))
+                                    .border(2.dp, if (on) p.ink else p.border, RoundedCornerShape(compact(20.dp, 16.dp)))
                                     .clickable(onClickLabel = "$k sticker", role = Role.RadioButton) { stickerKind = k },
                                 contentAlignment = Alignment.Center,
-                            ) { StickerImage(k, 56.dp) }
+                            ) { StickerImage(k, compact(56.dp, 44.dp)) }
                         }
                     }
                 }
             }
 
-            // Toolbar
+            // Toolbar: on a phone it scrolls sideways to reach every tool
             Row(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(p.card)
-                    .border(p.line, p.border, RoundedCornerShape(26.dp)).padding(horizontal = 12.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                    .border(p.line, p.border, RoundedCornerShape(26.dp))
+                    .then(if (phone) Modifier.horizontalScroll(rememberScrollState()) else Modifier)
+                    .padding(horizontal = compact(12.dp, 8.dp), vertical = compact(8.dp, 6.dp)),
+                horizontalArrangement = if (phone) Arrangement.spacedBy(2.dp) else Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 ToolButton("keyboard", "Type", tool == Tool.TYPE) { tool = Tool.TYPE }
@@ -810,12 +820,12 @@ private fun exportText(title: String, blocks: List<Block>, boxes: List<TextBox>)
 private fun ToolButton(icon: String, label: String, selected: Boolean, onClick: () -> Unit) {
     val p = LocalPalette.current
     Box(
-        Modifier.size(52.dp).clip(RoundedCornerShape(16.dp))
+        Modifier.size(compact(52.dp, 44.dp)).clip(RoundedCornerShape(16.dp))
             .background(if (selected) p.blush else Color.Transparent)
             .then(if (selected) Modifier.border(2.dp, p.ink, RoundedCornerShape(16.dp)) else Modifier)
             .clickable(onClickLabel = label, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
-    ) { CozyIcon(icon, size = 24.dp) }
+    ) { CozyIcon(icon, size = compact(24.dp, 22.dp)) }
 }
 
 @Composable

@@ -52,8 +52,12 @@ import app.cozy.launcher.ui.meadow.SceneBunny
 import app.cozy.launcher.ui.meadow.SceneCloud
 import app.cozy.launcher.ui.meadow.paperShadow
 import app.cozy.launcher.ui.meadow.skyVariant
+import app.cozy.launcher.data.Pictures
+import app.cozy.launcher.ui.PageBackdrop
+import app.cozy.launcher.ui.compact
 import app.cozy.launcher.ui.rememberNow
 import app.cozy.launcher.ui.theme.LocalAnimate
+import app.cozy.launcher.ui.theme.LocalCompact
 import app.cozy.launcher.ui.theme.LocalPalette
 import app.cozy.launcher.ui.theme.T
 import app.cozy.launcher.ui.theme.Txt
@@ -85,8 +89,54 @@ fun MeadowHomeScreen(nav: Navigator) {
     val holiday = Holidays.name(today)
     val hello = if (holiday != null) "Hi hi, happy $holiday!" else "Hi hi!"
 
+    val phone = LocalCompact.current
+    val bubble = meadowBubble(todays.size, todaysEvents.firstOrNull()?.title, today, Focus.isRunning(timer), hour)
+    val dateLine = today.format(DateTimeFormatter.ofPattern("EEEE · d MMMM"))
+    // The cream wave blends the meadow into the page, unless her own picture is behind the page.
+    val wave = if (settings.pictures[Pictures.page("meadow")] == null) p.bg else null
+
     Box(Modifier.fillMaxSize().background(p.bg)) {
+        PageBackdrop()
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
+          if (phone) {
+            // The painted meadow, arranged for a phone: greeting on top, mascot and bubble on the grass
+            Box(Modifier.fillMaxWidth().height(500.dp)) {
+                MeadowScene(
+                    Modifier.fillMaxSize(),
+                    variant = skyVariant(settings, hour),
+                    hy = 300.dp, dm = 40.dp, df = 84.dp, seed = 3,
+                    tall = SceneCloud(0.72f, 0f, 0.8f),
+                    clouds = listOf(SceneCloud(0.08f, 196f, 0.45f), SceneCloud(0.55f, 226f, 0.35f)),
+                    bunnies = if (settings.bunnies) listOf(SceneBunny(0.80f, 478f, 0.8f, true), SceneBunny(0.93f, 470f, 0.6f)) else emptyList(),
+                    flowers = 80,
+                    picnic = settings.scene == "picnic",
+                    wave = wave,
+                    animate = animate && settings.driftClouds,
+                )
+                Row(
+                    Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 18.dp),
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    PaperTag(Modifier.weight(1f), padding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)) {
+                        Txt(dateLine, T.body(14, 700), color = p.muted)
+                        Txt("$greeting, ${settings.name}", T.display(26), maxLines = 2)
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        RoundButton("apps", "All apps", { nav.go(Screen.AllApps) })
+                        RoundButton("palette", "Theme", { nav.go(Screen.Themes) })
+                        RoundButton("pencil", "Edit home screen", { nav.go(Screen.Edit()) })
+                    }
+                }
+                Row(
+                    Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(start = 8.dp, end = 16.dp, bottom = 34.dp),
+                    verticalAlignment = Alignment.Bottom,
+                ) {
+                    Mascot(size = 100.dp, berry = true)
+                    MeadowBubble(hello, bubble, Modifier.weight(1f).padding(bottom = 30.dp), tailFromBottom = true)
+                }
+            }
+          } else {
             // The painted meadow
             Box(Modifier.fillMaxWidth().height(520.dp)) {
                 MeadowScene(
@@ -100,7 +150,7 @@ fun MeadowHomeScreen(nav: Navigator) {
                     ) else emptyList(),
                     flowers = 120,
                     picnic = settings.scene == "picnic",
-                    wave = p.bg,
+                    wave = wave,
                     animate = animate && settings.driftClouds,
                 )
                 Box(Modifier.widthIn(max = 860.dp).fillMaxSize().align(Alignment.TopCenter)) {
@@ -113,7 +163,7 @@ fun MeadowHomeScreen(nav: Navigator) {
                     ) {
                         Box(Modifier.weight(1f)) {
                             PaperTag {
-                                Txt(today.format(DateTimeFormatter.ofPattern("EEEE · d MMMM")), T.body(17, 700), color = p.muted)
+                                Txt(dateLine, T.body(17, 700), color = p.muted)
                                 Txt("$greeting, ${settings.name}", T.display(40), maxLines = 2)
                             }
                         }
@@ -122,103 +172,146 @@ fun MeadowHomeScreen(nav: Navigator) {
                         RoundButton("pencil", "Edit home screen", { nav.go(Screen.Edit()) })
                     }
 
-                    // Speech bubble
-                    Box(Modifier.offset(x = 228.dp, y = 246.dp).widthIn(max = 400.dp)) {
-                        Canvas(Modifier.offset(x = 0.dp, y = 60.dp).size(16.dp, 28.dp)) {
-                            val tri = Path().apply {
-                                moveTo(size.width + 2f, 0f)
-                                lineTo(0f, size.height / 2f)
-                                lineTo(size.width + 2f, size.height)
-                                close()
-                            }
-                            drawPath(tri, p.card)
-                            drawLine(p.border, androidx.compose.ui.geometry.Offset(size.width, 0f), androidx.compose.ui.geometry.Offset(0f, size.height / 2f), 2f * density)
-                            drawLine(p.border, androidx.compose.ui.geometry.Offset(0f, size.height / 2f), androidx.compose.ui.geometry.Offset(size.width, size.height), 2f * density)
-                        }
-                        PaperTag(Modifier.padding(start = 14.dp), padding = PaddingValues(horizontal = 24.dp, vertical = 18.dp)) {
-                            Txt(hello, T.display(23, 500))
-                            Txt(
-                                meadowBubble(todays.size, todaysEvents.firstOrNull()?.title, today, Focus.isRunning(timer), hour),
-                                T.body(18), Modifier.padding(top = 4.dp),
-                            )
-                        }
-                    }
+                    MeadowBubble(hello, bubble, Modifier.offset(x = 228.dp, y = 246.dp).widthIn(max = 400.dp), tailFromBottom = false)
                 }
             }
+          }
 
             Column(
-                Modifier.widthIn(max = 860.dp).fillMaxWidth().padding(start = 48.dp, end = 48.dp, top = 4.dp, bottom = 40.dp),
-                verticalArrangement = Arrangement.spacedBy(26.dp),
+                Modifier.widthIn(max = 860.dp).fillMaxWidth().padding(start = compact(48.dp, 16.dp), end = compact(48.dp, 16.dp), top = 4.dp, bottom = compact(40.dp, 24.dp)),
+                verticalArrangement = Arrangement.spacedBy(compact(26.dp, 18.dp)),
             ) {
                 MeadowTileGrid(settings.tiles) { openTile(ctx, nav, it) }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(18.dp), verticalAlignment = Alignment.Top) {
-                    // Today, on a picnic cloth
-                    val shape = RoundedCornerShape(28.dp)
-                    Column(
-                        Modifier.weight(1f).paperShadow(28.dp, p.border, 5.dp).clip(shape).background(p.card).border(2.dp, p.border, shape)
-                    ) {
-                        GinghamHeader(if (holiday != null) "Today · $holiday" else "Today")
-                        Column(Modifier.padding(start = 22.dp, end = 22.dp, top = 14.dp, bottom = 22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            if (todays.isEmpty() && todaysEvents.isEmpty()) {
-                                Txt("A free day. Maybe a picnic?", T.hand(26), color = p.muted)
-                            }
-                            todaysEvents.take(2).forEach { e ->
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                                    Box(Modifier.size(36.dp), contentAlignment = Alignment.Center) {
-                                        Box(Modifier.size(14.dp).clip(RoundedCornerShape(7.dp)).background(p.mint).border(1.5.dp, p.ink, RoundedCornerShape(7.dp)))
-                                    }
-                                    Txt(e.title, T.body(19), Modifier.weight(1f), maxLines = 1)
-                                    Txt(e.minutes?.let { "%02d:%02d".format(it / 60, it % 60) } ?: "All day", T.body(17, 700), color = p.muted)
-                                }
-                            }
-                            todays.take(4).forEach { r ->
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                                    CheckMark(false, { Store.toggleReminder(r.id) }, size = 30.dp)
-                                    Txt(r.title, T.body(19), Modifier.weight(1f), maxLines = 1)
-                                    val d = r.dueDateTime()
-                                    val label = when {
-                                        d == null -> ""
-                                        d.toLocalDate().isBefore(today) -> "Overdue"
-                                        r.hasTime -> d.format(DateTimeFormatter.ofPattern("HH:mm"))
-                                        else -> ""
-                                    }
-                                    Txt(label, T.body(17, 700), color = if (label == "Overdue") p.holiday else p.muted)
-                                }
-                            }
-                            if (todays.size > 4) Txt("and ${todays.size - 4} more", T.body(16, 600), color = p.muted)
-                            if (todays.isNotEmpty()) Txt("tick one off and a strawberry goes in the basket", T.hand(23), color = p.muted)
-                            Pill("+ Add reminder", { nav.go(Screen.Reminders) }, style = PillStyle.SOFT)
-                        }
-                    }
-
-                    // Focus drink
-                    val running = Focus.isRunning(timer)
-                    val ms = Focus.remainingMs(timer, now)
-                    val sec = ((ms + 999) / 1000).toInt()
-                    val frac = if (timer.totalSec > 0) 1f - (ms / 1000f / timer.totalSec) else 0f
-                    val skyShape = RoundedCornerShape(28.dp)
-                    Column(
-                        Modifier.width(250.dp).paperShadow(28.dp, p.skyBorder, 5.dp).clip(skyShape).background(p.skyCard)
-                            .border(2.dp, p.skyBorder, skyShape).padding(horizontal = 18.dp, vertical = 20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        CupView(if (running || timer.remainingSec < timer.totalSec) frac else 0.35f, timer.mode, 92.dp, bubbling = running)
-                        Txt("%02d:%02d".format(sec / 60, sec % 60), T.display(52), maxLines = 1)
-                        Txt(drinkName(timer.mode), T.hand(24), color = p.ink)
-                        Pill(
-                            if (running) "Open" else "Start",
-                            {
-                                if (!running) Focus.start()
-                                nav.go(Screen.Timer)
-                            },
-                            Modifier.fillMaxWidth(),
-                            style = PillStyle.DARK,
-                        )
+                if (phone) {
+                    MeadowToday(todays, todaysEvents, today, holiday, nav, Modifier.fillMaxWidth())
+                    MeadowDrink(timer, now, nav, Modifier.fillMaxWidth())
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(18.dp), verticalAlignment = Alignment.Top) {
+                        MeadowToday(todays, todaysEvents, today, holiday, nav, Modifier.weight(1f))
+                        MeadowDrink(timer, now, nav, Modifier.width(250.dp))
                     }
                 }
             }
+        }
+    }
+}
+
+/** Today, on a picnic cloth. */
+@Composable
+private fun MeadowToday(
+    todays: List<app.cozy.launcher.data.Reminder>,
+    todaysEvents: List<app.cozy.launcher.data.CalEvent>,
+    today: LocalDate,
+    holiday: String?,
+    nav: Navigator,
+    modifier: Modifier,
+) {
+    val p = LocalPalette.current
+    val shape = RoundedCornerShape(28.dp)
+    Column(
+        modifier.paperShadow(28.dp, p.border, 5.dp).clip(shape).background(p.card).border(2.dp, p.border, shape)
+    ) {
+        GinghamHeader(if (holiday != null) "Today · $holiday" else "Today")
+        Column(Modifier.padding(start = compact(22.dp, 16.dp), end = compact(22.dp, 16.dp), top = 14.dp, bottom = compact(22.dp, 18.dp)), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (todays.isEmpty() && todaysEvents.isEmpty()) {
+                Txt("A free day. Maybe a picnic?", T.hand(26), color = p.muted)
+            }
+            todaysEvents.take(2).forEach { e ->
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Box(Modifier.size(36.dp), contentAlignment = Alignment.Center) {
+                        Box(Modifier.size(14.dp).clip(RoundedCornerShape(7.dp)).background(p.mint).border(1.5.dp, p.ink, RoundedCornerShape(7.dp)))
+                    }
+                    Txt(e.title, T.body(19), Modifier.weight(1f), maxLines = 1)
+                    Txt(e.minutes?.let { "%02d:%02d".format(it / 60, it % 60) } ?: "All day", T.body(17, 700), color = p.muted)
+                }
+            }
+            todays.take(4).forEach { r ->
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    CheckMark(false, { Store.toggleReminder(r.id) }, size = 30.dp)
+                    Txt(r.title, T.body(19), Modifier.weight(1f), maxLines = 1)
+                    val d = r.dueDateTime()
+                    val label = when {
+                        d == null -> ""
+                        d.toLocalDate().isBefore(today) -> "Overdue"
+                        r.hasTime -> d.format(DateTimeFormatter.ofPattern("HH:mm"))
+                        else -> ""
+                    }
+                    Txt(label, T.body(17, 700), color = if (label == "Overdue") p.holiday else p.muted)
+                }
+            }
+            if (todays.size > 4) Txt("and ${todays.size - 4} more", T.body(16, 600), color = p.muted)
+            if (todays.isNotEmpty()) Txt("tick one off and a strawberry goes in the basket", T.hand(23), color = p.muted)
+            Pill("+ Add reminder", { nav.go(Screen.Reminders) }, style = PillStyle.SOFT)
+        }
+    }
+}
+
+/** The focus drink: a tall card on the tablet, a wide one on a phone. */
+@Composable
+private fun MeadowDrink(timer: app.cozy.launcher.data.TimerState, now: Long, nav: Navigator, modifier: Modifier) {
+    val p = LocalPalette.current
+    val running = Focus.isRunning(timer)
+    val ms = Focus.remainingMs(timer, now)
+    val sec = ((ms + 999) / 1000).toInt()
+    val frac = if (timer.totalSec > 0) 1f - (ms / 1000f / timer.totalSec) else 0f
+    val fill = if (running || timer.remainingSec < timer.totalSec) frac else 0.35f
+    val skyShape = RoundedCornerShape(28.dp)
+    val card = modifier.paperShadow(28.dp, p.skyBorder, 5.dp).clip(skyShape).background(p.skyCard)
+        .border(2.dp, p.skyBorder, skyShape).padding(horizontal = 18.dp, vertical = compact(20.dp, 14.dp))
+    val start: @Composable (Modifier) -> Unit = { m ->
+        Pill(
+            if (running) "Open" else "Start",
+            {
+                if (!running) Focus.start()
+                nav.go(Screen.Timer)
+            },
+            m,
+            style = PillStyle.DARK,
+        )
+    }
+    if (LocalCompact.current) {
+        Row(card, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            CupView(fill, timer.mode, 64.dp, bubbling = running)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Txt("%02d:%02d".format(sec / 60, sec % 60), T.display(40), maxLines = 1)
+                Txt(drinkName(timer.mode), T.hand(22), color = p.ink)
+                start(Modifier.fillMaxWidth().padding(top = 4.dp))
+            }
+        }
+    } else {
+        Column(card, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            CupView(fill, timer.mode, 92.dp, bubbling = running)
+            Txt("%02d:%02d".format(sec / 60, sec % 60), T.display(52), maxLines = 1)
+            Txt(drinkName(timer.mode), T.hand(24), color = p.ink)
+            start(Modifier.fillMaxWidth())
+        }
+    }
+}
+
+/** The mascot's speech bubble, with a little tail pointing back at her. */
+@Composable
+private fun MeadowBubble(hello: String, text: String, modifier: Modifier, tailFromBottom: Boolean) {
+    val p = LocalPalette.current
+    Box(modifier) {
+        val tail = if (tailFromBottom) Modifier.align(Alignment.BottomStart).offset(y = (-18).dp) else Modifier.offset(x = 0.dp, y = 60.dp)
+        Canvas(tail.size(16.dp, 28.dp)) {
+            val tri = Path().apply {
+                moveTo(size.width + 2f, 0f)
+                lineTo(0f, size.height / 2f)
+                lineTo(size.width + 2f, size.height)
+                close()
+            }
+            drawPath(tri, p.card)
+            drawLine(p.border, androidx.compose.ui.geometry.Offset(size.width, 0f), androidx.compose.ui.geometry.Offset(0f, size.height / 2f), 2f * density)
+            drawLine(p.border, androidx.compose.ui.geometry.Offset(0f, size.height / 2f), androidx.compose.ui.geometry.Offset(size.width, size.height), 2f * density)
+        }
+        PaperTag(
+            Modifier.padding(start = 14.dp),
+            padding = if (tailFromBottom) PaddingValues(horizontal = 16.dp, vertical = 12.dp) else PaddingValues(horizontal = 24.dp, vertical = 18.dp),
+        ) {
+            Txt(hello, T.display(compact(23, 19), 500))
+            Txt(text, T.body(compact(18, 15)), Modifier.padding(top = compact(4.dp, 2.dp)))
         }
     }
 }
@@ -254,11 +347,12 @@ private fun meadowBubble(reminders: Int, eventTitle: String?, today: LocalDate, 
 fun MeadowTileGrid(tiles: List<Tile>, onClick: (Tile) -> Unit) {
     val p = LocalPalette.current
     val colours = listOf(p.accent, p.mint, p.skyCard, p.butter)
-    Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
+    val gap = compact(18.dp, 12.dp)
+    Column(verticalArrangement = Arrangement.spacedBy(gap)) {
         tiles.chunked(3).forEachIndexed { row, chunk ->
-            Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
                 chunk.forEachIndexed { col, tile ->
-                    val shape = RoundedCornerShape(28.dp)
+                    val shape = RoundedCornerShape(compact(28.dp, 22.dp))
                     Column(
                         Modifier.weight(1f)
                             .paperShadow(28.dp, p.border, 5.dp)
@@ -266,15 +360,16 @@ fun MeadowTileGrid(tiles: List<Tile>, onClick: (Tile) -> Unit) {
                             .background(p.card)
                             .border(2.dp, p.border, shape)
                             .clickable(onClickLabel = "Open ${tile.label}", role = Role.Button) { onClick(tile) }
-                            .padding(top = 22.dp, bottom = 20.dp, start = 10.dp, end = 10.dp),
+                            .padding(top = compact(22.dp, 14.dp), bottom = compact(20.dp, 12.dp), start = compact(10.dp, 6.dp), end = compact(10.dp, 6.dp)),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(compact(12.dp, 8.dp)),
                     ) {
+                        val circle = compact(84.dp, 58.dp)
                         Box(
-                            Modifier.size(84.dp).clip(RoundedCornerShape(42.dp)).background(colours[(row * 3 + col) % colours.size]),
+                            Modifier.size(circle).clip(RoundedCornerShape(circle / 2)).background(colours[(row * 3 + col) % colours.size]),
                             contentAlignment = Alignment.Center,
-                        ) { MeadowIcon(tile.icon, 56.dp) }
-                        Txt(tile.label, T.display(22, 500), maxLines = 1, align = TextAlign.Center)
+                        ) { MeadowIcon(tile.icon, circle * 0.67f) }
+                        Txt(tile.label, T.display(compact(22, 16), 500), maxLines = 1, align = TextAlign.Center)
                     }
                 }
                 repeat(3 - chunk.size) { Spacer(Modifier.weight(1f)) }

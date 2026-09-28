@@ -40,12 +40,20 @@ import app.cozy.launcher.ui.CozyIcon
 import app.cozy.launcher.ui.Mascot
 import app.cozy.launcher.ui.Navigator
 import app.cozy.launcher.ui.Page
+import app.cozy.launcher.ui.PictureFill
 import app.cozy.launcher.ui.Pill
 import app.cozy.launcher.ui.PillStyle
 import app.cozy.launcher.ui.RoundButton
 import app.cozy.launcher.ui.Screen
 import app.cozy.launcher.ui.Sparkle
+import app.cozy.launcher.ui.compact
+import app.cozy.launcher.ui.gutter
+import app.cozy.launcher.ui.gutterTop
 import app.cozy.launcher.ui.rememberNow
+import app.cozy.launcher.ui.rememberPicture
+import app.cozy.launcher.data.Pictures
+import app.cozy.launcher.data.themeId
+import app.cozy.launcher.ui.theme.LocalCompact
 import app.cozy.launcher.ui.theme.LocalPalette
 import app.cozy.launcher.ui.theme.T
 import app.cozy.launcher.ui.theme.Txt
@@ -94,20 +102,20 @@ private fun CozyHomeScreen(nav: Navigator) {
         else -> "Good evening"
     }
 
-
+    val phone = LocalCompact.current
     Page {
         Column(
-            Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 40.dp, vertical = 36.dp),
-            verticalArrangement = Arrangement.spacedBy(28.dp),
+            Modifier.verticalScroll(rememberScrollState()).padding(horizontal = gutter, vertical = gutterTop),
+            verticalArrangement = Arrangement.spacedBy(compact(28.dp, 18.dp)),
         ) {
             // Greeting
-            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Txt(today.format(DateTimeFormatter.ofPattern("EEEE · d MMMM")), T.body(18, 600), color = p.muted)
-                    Txt("$greeting, ${settings.name}", T.display(46), maxLines = 2)
+            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(compact(12.dp, 8.dp))) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(compact(6.dp, 2.dp))) {
+                    Txt(today.format(DateTimeFormatter.ofPattern("EEEE · d MMMM")), T.body(compact(18, 15), 600), color = p.muted)
+                    Txt("$greeting, ${settings.name}", T.display(compact(46, 30)), maxLines = 2)
                 }
-                RoundButton("apps", "All apps", { nav.go(Screen.AllApps) }, size = 56.dp)
-                RoundButton("pencil", "Edit home screen", { nav.go(Screen.Edit()) }, size = 56.dp)
+                RoundButton("apps", "All apps", { nav.go(Screen.AllApps) }, size = compact(56.dp, 44.dp))
+                RoundButton("pencil", "Edit home screen", { nav.go(Screen.Edit()) }, size = compact(56.dp, 44.dp))
             }
 
             // Mascot and bubble
@@ -116,40 +124,57 @@ private fun CozyHomeScreen(nav: Navigator) {
             // Tiles
             TileGrid(settings.tiles) { openTile(ctx, nav, it) }
 
-            // Today + focus timer
-            Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                Card(Modifier.weight(1f), spacing = 16.dp) {
-                    Txt("Today", T.display(26, 500))
-                    if (todays.isEmpty() && todaysEvents.isEmpty()) {
-                        Txt("All clear for today.", T.body(18), color = p.muted)
-                    }
-                    todaysEvents.take(2).forEach { e ->
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                            Box(Modifier.size(12.dp).clip(RoundedCornerShape(6.dp)).background(p.mint).border(1.dp, p.ink, RoundedCornerShape(6.dp)))
-                            Txt(e.title, T.body(19), Modifier.weight(1f), maxLines = 1)
-                            Txt(e.minutes?.let { "%02d:%02d".format(it / 60, it % 60) } ?: "All day", T.body(17, 600), color = p.muted)
-                        }
-                    }
-                    todays.take(4).forEach { r ->
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                            CheckMark(false, { Store.toggleReminder(r.id) }, size = 28.dp)
-                            Txt(r.title, T.body(19), Modifier.weight(1f), maxLines = 1)
-                            val d = r.dueDateTime()
-                            val label = when {
-                                d == null -> ""
-                                d.toLocalDate().isBefore(today) -> "Overdue"
-                                r.hasTime -> d.format(DateTimeFormatter.ofPattern("HH:mm"))
-                                else -> ""
-                            }
-                            Txt(label, T.body(17, 600), color = if (label == "Overdue") p.holiday else p.muted)
-                        }
-                    }
-                    if (todays.size > 4) Txt("and ${todays.size - 4} more", T.body(16, 600), color = p.muted)
-                    Pill("+ Add reminder", { nav.go(Screen.Reminders) }, style = PillStyle.SOFT)
+            // Today + focus timer: side by side on the tablet, one above the other on a phone
+            if (phone) {
+                TodayCard(todays, todaysEvents, today, nav, Modifier.fillMaxWidth())
+                FocusMini(timer, now, Modifier.fillMaxWidth()) { nav.go(Screen.Timer) }
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                    TodayCard(todays, todaysEvents, today, nav, Modifier.weight(1f))
+                    FocusMini(timer, now, Modifier.width(250.dp)) { nav.go(Screen.Timer) }
                 }
-                FocusMini(timer, now) { nav.go(Screen.Timer) }
             }
         }
+    }
+}
+
+@Composable
+private fun TodayCard(
+    todays: List<app.cozy.launcher.data.Reminder>,
+    todaysEvents: List<app.cozy.launcher.data.CalEvent>,
+    today: LocalDate,
+    nav: Navigator,
+    modifier: Modifier,
+) {
+    val p = LocalPalette.current
+    Card(modifier, spacing = compact(16.dp, 12.dp)) {
+        Txt("Today", T.display(compact(26, 22), 500))
+        if (todays.isEmpty() && todaysEvents.isEmpty()) {
+            Txt("All clear for today.", T.body(18), color = p.muted)
+        }
+        todaysEvents.take(2).forEach { e ->
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                Box(Modifier.size(12.dp).clip(RoundedCornerShape(6.dp)).background(p.mint).border(1.dp, p.ink, RoundedCornerShape(6.dp)))
+                Txt(e.title, T.body(19), Modifier.weight(1f), maxLines = 1)
+                Txt(e.minutes?.let { "%02d:%02d".format(it / 60, it % 60) } ?: "All day", T.body(17, 600), color = p.muted)
+            }
+        }
+        todays.take(4).forEach { r ->
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                CheckMark(false, { Store.toggleReminder(r.id) }, size = 28.dp)
+                Txt(r.title, T.body(19), Modifier.weight(1f), maxLines = 1)
+                val d = r.dueDateTime()
+                val label = when {
+                    d == null -> ""
+                    d.toLocalDate().isBefore(today) -> "Overdue"
+                    r.hasTime -> d.format(DateTimeFormatter.ofPattern("HH:mm"))
+                    else -> ""
+                }
+                Txt(label, T.body(17, 600), color = if (label == "Overdue") p.holiday else p.muted)
+            }
+        }
+        if (todays.size > 4) Txt("and ${todays.size - 4} more", T.body(16, 600), color = p.muted)
+        Pill("+ Add reminder", { nav.go(Screen.Reminders) }, style = PillStyle.SOFT)
     }
 }
 
@@ -174,27 +199,30 @@ internal fun bubbleText(reminders: Int, eventTitle: String?, today: LocalDate, t
 @Composable
 private fun MascotCard(text: String) {
     val p = LocalPalette.current
-    val shape = RoundedCornerShape(36.dp)
+    val settings by Store.settings.collectAsState()
+    val photo = rememberPicture(settings.pictures[Pictures.card(settings.themeId())])
+    val shape = RoundedCornerShape(compact(36.dp, 28.dp))
     var m = Modifier.fillMaxWidth().clip(shape).background(p.accent)
     if (p.eink) m = m.border(p.line, p.ink, shape)
     Box(m) {
-        Sparkle(Modifier.align(Alignment.TopEnd).padding(top = 24.dp, end = 40.dp), size = 22.dp, color = if (p.eink) p.ink else androidx.compose.ui.graphics.Color.White)
-        Sparkle(Modifier.align(Alignment.BottomEnd).padding(bottom = 26.dp, end = 120.dp), size = 14.dp, delayMs = 700, color = if (p.eink) p.ink else androidx.compose.ui.graphics.Color.White)
+        if (photo != null) PictureFill(photo, Modifier.matchParentSize())
+        Sparkle(Modifier.align(Alignment.TopEnd).padding(top = 24.dp, end = compact(40.dp, 20.dp)), size = compact(22.dp, 16.dp), color = if (p.eink) p.ink else androidx.compose.ui.graphics.Color.White)
+        Sparkle(Modifier.align(Alignment.BottomEnd).padding(bottom = compact(26.dp, 14.dp), end = compact(120.dp, 60.dp)), size = 14.dp, delayMs = 700, color = if (p.eink) p.ink else androidx.compose.ui.graphics.Color.White)
         Row(
-            Modifier.padding(horizontal = 32.dp, vertical = 28.dp),
+            Modifier.padding(horizontal = compact(32.dp, 16.dp), vertical = compact(28.dp, 18.dp)),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(26.dp),
+            horizontalArrangement = Arrangement.spacedBy(compact(26.dp, 12.dp)),
         ) {
-            Mascot(size = 140.dp)
+            Mascot(size = compact(140.dp, 84.dp))
             Column(
                 Modifier.weight(1f, fill = false)
-                    .clip(RoundedCornerShape(26.dp))
+                    .clip(RoundedCornerShape(compact(26.dp, 20.dp)))
                     .background(p.card)
-                    .padding(horizontal = 24.dp, vertical = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                    .padding(horizontal = compact(24.dp, 14.dp), vertical = compact(20.dp, 12.dp)),
+                verticalArrangement = Arrangement.spacedBy(compact(6.dp, 2.dp)),
             ) {
-                Txt("Hi hi!", T.display(24, 500))
-                Txt(text, T.body(19), color = p.ink)
+                Txt("Hi hi!", T.display(compact(24, 19), 500))
+                Txt(text, T.body(compact(19, 15)), color = p.ink)
             }
         }
     }
@@ -204,11 +232,12 @@ private fun MascotCard(text: String) {
 fun TileGrid(tiles: List<Tile>, onClick: (Tile) -> Unit) {
     val p = LocalPalette.current
     val ctx = LocalContext.current
-    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+    val gap = compact(20.dp, 12.dp)
+    Column(verticalArrangement = Arrangement.spacedBy(gap)) {
         tiles.chunked(3).forEachIndexed { row, chunk ->
-            Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
                 chunk.forEachIndexed { col, tile ->
-                    val shape = RoundedCornerShape(28.dp)
+                    val shape = RoundedCornerShape(compact(28.dp, 22.dp))
                     val colour = if ((row * 3 + col) % 2 == 0) p.accent else p.mint
                     Column(
                         Modifier.weight(1f)
@@ -216,12 +245,12 @@ fun TileGrid(tiles: List<Tile>, onClick: (Tile) -> Unit) {
                             .background(p.card)
                             .border(p.line, p.border, shape)
                             .clickable(onClickLabel = "Open ${tile.label}", role = Role.Button) { onClick(tile) }
-                            .padding(vertical = 24.dp, horizontal = 10.dp),
+                            .padding(vertical = compact(24.dp, 14.dp), horizontal = compact(10.dp, 6.dp)),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(compact(14.dp, 8.dp)),
                     ) {
-                        TileIcon(tile, colour, 76)
-                        Txt(tile.label, T.display(22, 500), maxLines = 1, align = TextAlign.Center)
+                        TileIcon(tile, colour, compact(76, 54))
+                        Txt(tile.label, T.display(compact(22, 16), 500), maxLines = 1, align = TextAlign.Center)
                     }
                 }
                 repeat(3 - chunk.size) { Spacer(Modifier.weight(1f)) }
@@ -243,20 +272,20 @@ fun TileIcon(tile: Tile, colour: androidx.compose.ui.graphics.Color, sizeDp: Int
 }
 
 @Composable
-private fun FocusMini(timer: app.cozy.launcher.data.TimerState, now: Long, openTimer: () -> Unit) {
+private fun FocusMini(timer: app.cozy.launcher.data.TimerState, now: Long, modifier: Modifier, openTimer: () -> Unit) {
     val p = LocalPalette.current
     val ms = Focus.remainingMs(timer, now)
     val sec = ((ms + 999) / 1000).toInt()
     val running = Focus.isRunning(timer)
     Card(
-        Modifier.width(250.dp),
+        modifier,
         color = p.mint,
         border = if (p.eink) p.ink else null,
-        padding = PaddingValues(vertical = 26.dp, horizontal = 18.dp),
+        padding = PaddingValues(vertical = compact(26.dp, 18.dp), horizontal = 18.dp),
     ) {
-        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(compact(14.dp, 10.dp))) {
             Txt(if (timer.mode == Focus.FOCUS) "Focus timer" else Focus.label(timer.mode), T.display(22, 500))
-            Txt("%02d:%02d".format(sec / 60, sec % 60), T.display(58), maxLines = 1)
+            Txt("%02d:%02d".format(sec / 60, sec % 60), T.display(compact(58, 48)), maxLines = 1)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(5, 15, 25).forEach { m ->
                     val selected = timer.totalSec == m * 60

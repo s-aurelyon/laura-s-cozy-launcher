@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -49,6 +51,8 @@ import app.cozy.launcher.ui.Pill
 import app.cozy.launcher.ui.PillStyle
 import app.cozy.launcher.ui.RoundButton
 import app.cozy.launcher.ui.Toggle
+import app.cozy.launcher.ui.compact
+import app.cozy.launcher.ui.theme.LocalCompact
 import app.cozy.launcher.ui.home.Divider
 import app.cozy.launcher.ui.meadow.CupView
 import app.cozy.launcher.ui.meadow.MeadowScene
@@ -72,6 +76,7 @@ private fun meadowLabel(mode: String) = when (mode) {
 }
 
 /** The Meadow focus timer: a drink that fills up while she focuses. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MeadowTimerScreen(nav: Navigator) {
     val p = LocalPalette.current
@@ -105,9 +110,20 @@ fun MeadowTimerScreen(nav: Navigator) {
         else -> "ready when you are"
     }
 
+    val phone = LocalCompact.current
     BoxWithConstraints(Modifier.fillMaxSize().background(p.bg)) {
-        val sceneH = maxHeight.coerceAtLeast(1100.dp)
-        MeadowScene(
+        val sceneH = maxHeight.coerceAtLeast(compact(1100.dp, 900.dp))
+        if (phone) MeadowScene(
+            Modifier.fillMaxWidth().height(sceneH),
+            variant = skyVariant(settings),
+            hy = 330.dp, dm = 36.dp, df = 70.dp, seed = 17,
+            tall = SceneCloud(0.62f, 0f, 0.85f),
+            clouds = listOf(SceneCloud(0.08f, 150f, 0.45f), SceneCloud(0.86f, 118f, 0.35f)),
+            bunnies = if (settings.bunnies) listOf(SceneBunny(0.86f, 452f, 0.75f, true), SceneBunny(0.95f, 462f, 0.55f)) else emptyList(),
+            flowers = 110,
+            picnic = false,
+            animate = LocalAnimate.current && settings.driftClouds,
+        ) else MeadowScene(
             Modifier.fillMaxWidth().height(sceneH),
             variant = skyVariant(settings),
             hy = 560.dp, dm = 50.dp, df = 96.dp, seed = 17,
@@ -123,13 +139,13 @@ fun MeadowTimerScreen(nav: Navigator) {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Column(
-                Modifier.widthIn(max = 860.dp).fillMaxWidth().padding(horizontal = 40.dp, vertical = 36.dp),
+                Modifier.widthIn(max = 860.dp).fillMaxWidth().padding(horizontal = compact(40.dp, 16.dp), vertical = compact(36.dp, 18.dp)),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(18.dp),
+                verticalArrangement = Arrangement.spacedBy(compact(18.dp, 14.dp)),
             ) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(compact(14.dp, 10.dp))) {
                     RoundButton("back", "Back", { nav.back() })
-                    PaperTag(padding = PaddingValues(horizontal = 22.dp, vertical = 8.dp)) { Txt("Focus", T.display(38)) }
+                    PaperTag(padding = PaddingValues(horizontal = compact(22.dp, 16.dp), vertical = 8.dp)) { Txt("Focus", T.display(compact(38, 28))) }
                 }
 
                 // Drinks
@@ -143,25 +159,36 @@ fun MeadowTimerScreen(nav: Navigator) {
                         Box(
                             Modifier.clip(RoundedCornerShape(22.dp)).background(if (on) p.ink else Color.Transparent)
                                 .clickable(onClickLabel = meadowLabel(m), role = Role.Tab) { Focus.setMode(m) }
-                                .padding(horizontal = 22.dp, vertical = 12.dp)
-                        ) { Txt(meadowLabel(m), T.body(17, 700), color = if (on) p.onInk else p.ink) }
+                                .padding(horizontal = compact(22.dp, 10.dp), vertical = 12.dp)
+                        ) { Txt(if (phone) meadowLabel(m).substringBefore(' ').replaceFirstChar { it.uppercase() } else meadowLabel(m), T.body(compact(17, 15), 700), color = if (on) p.onInk else p.ink, maxLines = 1) }
                     }
                 }
 
                 // The cup on its little picnic cloth, with the mascot keeping company
-                Box(Modifier.width(560.dp).height(480.dp)) {
-                    Box(
-                        Modifier.align(Alignment.BottomCenter).offset(y = (-10).dp).size(360.dp, 110.dp)
-                            .paperShadow(55.dp, Color(0x264A3A2E), 6.dp).clip(RoundedCornerShape(55.dp)).gingham()
-                    )
-                    Mascot(Modifier.align(Alignment.BottomStart).offset(x = 10.dp, y = (-40).dp), size = 138.dp, mood = mood, bob = running)
-                    CupView(frac, timer.mode, 300.dp, bubbling = running, modifier = Modifier.align(Alignment.BottomCenter).offset(y = (-40).dp))
+                if (phone) {
+                    Box(Modifier.fillMaxWidth().height(290.dp)) {
+                        Box(
+                            Modifier.align(Alignment.BottomCenter).offset(y = (-6).dp).size(230.dp, 70.dp)
+                                .paperShadow(35.dp, Color(0x264A3A2E), 5.dp).clip(RoundedCornerShape(35.dp)).gingham(10.dp)
+                        )
+                        Mascot(Modifier.align(Alignment.BottomStart).offset(x = 4.dp, y = (-26).dp), size = 86.dp, mood = mood, bob = running)
+                        CupView(frac, timer.mode, 180.dp, bubbling = running, modifier = Modifier.align(Alignment.BottomCenter).offset(y = (-26).dp))
+                    }
+                } else {
+                    Box(Modifier.width(560.dp).height(480.dp)) {
+                        Box(
+                            Modifier.align(Alignment.BottomCenter).offset(y = (-10).dp).size(360.dp, 110.dp)
+                                .paperShadow(55.dp, Color(0x264A3A2E), 6.dp).clip(RoundedCornerShape(55.dp)).gingham()
+                        )
+                        Mascot(Modifier.align(Alignment.BottomStart).offset(x = 10.dp, y = (-40).dp), size = 138.dp, mood = mood, bob = running)
+                        CupView(frac, timer.mode, 300.dp, bubbling = running, modifier = Modifier.align(Alignment.BottomCenter).offset(y = (-40).dp))
+                    }
                 }
 
-                PaperTag(padding = PaddingValues(horizontal = 36.dp, vertical = 10.dp)) {
+                PaperTag(padding = PaddingValues(horizontal = compact(36.dp, 24.dp), vertical = 10.dp)) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Txt("%02d:%02d".format(sec / 60, sec % 60), T.display(66), maxLines = 1)
-                        Txt(status, T.hand(26), color = p.muted)
+                        Txt("%02d:%02d".format(sec / 60, sec % 60), T.display(compact(66, 50)), maxLines = 1)
+                        Txt(status, T.hand(compact(26, 22)), color = p.muted)
                     }
                 }
 
@@ -169,18 +196,18 @@ fun MeadowTimerScreen(nav: Navigator) {
                 val panel = RoundedCornerShape(30.dp)
                 Column(
                     Modifier.fillMaxWidth().paperShadow(30.dp, Color(0x244A3A2E), 6.dp).clip(panel).background(p.card)
-                        .border(2.dp, p.border, panel).padding(horizontal = 28.dp, vertical = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(18.dp),
+                        .border(2.dp, p.border, panel).padding(horizontal = compact(28.dp, 18.dp), vertical = compact(24.dp, 18.dp)),
+                    verticalArrangement = Arrangement.spacedBy(compact(18.dp, 14.dp)),
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(compact(8.dp, 4.dp))) {
                         val done = timer.session % 4
-                        repeat(4) { i -> StrawberryCheck(i < done, 30.dp) }
+                        repeat(4) { i -> StrawberryCheck(i < done, compact(30.dp, 26.dp)) }
                         Txt(
-                            "Session ${done + 1} of 4, then a honey nap",
-                            T.body(16, 700), Modifier.padding(start = 8.dp), color = p.muted,
+                            if (phone) "Session ${done + 1} of 4" else "Session ${done + 1} of 4, then a honey nap",
+                            T.body(compact(16, 14), 700), Modifier.padding(start = 8.dp), color = p.muted,
                         )
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         listOf(5, 15, 25, 45).forEach { m ->
                             val on = timer.totalSec == m * 60
                             val sh = RoundedCornerShape(18.dp)
@@ -193,20 +220,27 @@ fun MeadowTimerScreen(nav: Navigator) {
                         }
                         Pill("Custom", { customOpen = true }, style = PillStyle.DASHED, padding = PaddingValues(horizontal = 18.dp, vertical = 10.dp))
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Pill("Reset", { Focus.reset() }, Modifier.width(160.dp), style = PillStyle.LIGHT, textSize = 20, padding = PaddingValues(18.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(compact(14.dp, 10.dp))) {
+                        Pill("Reset", { Focus.reset() }, if (phone) Modifier.weight(1f) else Modifier.width(160.dp), style = PillStyle.LIGHT, textSize = compact(20, 18), padding = PaddingValues(compact(18.dp, 15.dp)))
                         val label = when {
                             running -> "Pause"
                             sec < timer.totalSec -> "Resume"
                             timer.finishedMode != null -> "Start ${meadowLabel(timer.mode).lowercase()}"
                             else -> "Start"
                         }
-                        Pill(label, { if (running) Focus.pause() else Focus.start() }, Modifier.weight(1f), style = PillStyle.DARK, textSize = 20, padding = PaddingValues(18.dp))
+                        Pill(label, { if (running) Focus.pause() else Focus.start() }, Modifier.weight(compact(1f, 1.6f)), style = PillStyle.DARK, textSize = compact(20, 18), padding = PaddingValues(compact(18.dp, 15.dp)))
                     }
                     Divider()
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Txt("Focusing on", T.body(18, 700), Modifier.weight(1f))
-                        CozyField(timer.focusingOn, { Focus.setFocusingOn(it) }, "something lovely", Modifier.width(300.dp), style = T.hand(26).copy(color = Color(0xFF5B7DB1)), boxed = false)
+                    if (phone) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Txt("Focusing on", T.body(16, 700))
+                            CozyField(timer.focusingOn, { Focus.setFocusingOn(it) }, "something lovely", Modifier.fillMaxWidth(), style = T.hand(24).copy(color = Color(0xFF5B7DB1)), boxed = false)
+                        }
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Txt("Focusing on", T.body(18, 700), Modifier.weight(1f))
+                            CozyField(timer.focusingOn, { Focus.setFocusingOn(it) }, "something lovely", Modifier.width(300.dp), style = T.hand(26).copy(color = Color(0xFF5B7DB1)), boxed = false)
+                        }
                     }
                     Divider()
                     TimerSetting("Sound when done") {
@@ -241,7 +275,7 @@ fun MeadowTimerScreen(nav: Navigator) {
 @Composable
 private fun TimerSetting(label: String, control: @Composable () -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Txt(label, T.body(18, 600), Modifier.weight(1f))
+        Txt(label, T.body(compact(18, 16), 600), Modifier.weight(1f))
         control()
     }
 }

@@ -34,6 +34,9 @@ import app.cozy.launcher.ui.Navigator
 import app.cozy.launcher.ui.Page
 import app.cozy.launcher.ui.Pill
 import app.cozy.launcher.ui.PillStyle
+import app.cozy.launcher.ui.compact
+import app.cozy.launcher.ui.gutter
+import app.cozy.launcher.ui.gutterTop
 import app.cozy.launcher.ui.theme.LocalPalette
 import app.cozy.launcher.ui.theme.T
 import app.cozy.launcher.ui.theme.Txt
@@ -49,12 +52,12 @@ fun AllAppsScreen(nav: Navigator) {
     val shown = apps.filter { search.isBlank() || it.label.contains(search, ignoreCase = true) }
 
     Page {
-        Column(Modifier.padding(horizontal = 40.dp, vertical = 36.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        Column(Modifier.padding(horizontal = gutter, vertical = gutterTop), verticalArrangement = Arrangement.spacedBy(compact(20.dp, 14.dp))) {
             Header("All apps", { nav.back() })
             CozyField(search, { search = it }, "Search apps", Modifier.fillMaxWidth(), leadingIcon = "search")
-            Txt("Hold an app to add it to your home screen.", T.body(16, 600), color = p.muted)
+            Txt("Hold an app to add it to your home screen.", T.body(compact(16, 14), 600), color = p.muted)
             LazyVerticalGrid(
-                columns = GridCells.Adaptive(130.dp),
+                columns = GridCells.Adaptive(compact(130.dp, 80.dp)),
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -67,12 +70,12 @@ fun AllAppsScreen(nav: Navigator) {
                                 onClick = { Apps.launch(ctx, app.pkg) },
                                 onLongClick = { menuFor = app },
                             )
-                            .padding(vertical = 14.dp, horizontal = 6.dp),
+                            .padding(vertical = compact(14.dp, 10.dp), horizontal = compact(6.dp, 2.dp)),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(compact(10.dp, 6.dp)),
                     ) {
-                        AppIcon(app.pkg, 60)
-                        Txt(app.label, T.body(15, 600), maxLines = 2, align = TextAlign.Center)
+                        AppIcon(app.pkg, compact(60, 48))
+                        Txt(app.label, T.body(compact(15, 13), 600), maxLines = 2, align = TextAlign.Center)
                     }
                 }
             }

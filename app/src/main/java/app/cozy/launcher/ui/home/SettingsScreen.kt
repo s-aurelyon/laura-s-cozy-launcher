@@ -6,6 +6,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -38,11 +40,15 @@ import app.cozy.launcher.ui.PillStyle
 import app.cozy.launcher.ui.Screen
 import app.cozy.launcher.ui.SectionLabel
 import app.cozy.launcher.ui.Toggle
+import app.cozy.launcher.ui.compact
+import app.cozy.launcher.ui.gutter
+import app.cozy.launcher.ui.gutterTop
 import app.cozy.launcher.ui.theme.LocalPalette
 import app.cozy.launcher.ui.theme.T
 import app.cozy.launcher.ui.theme.Txt
 import app.cozy.launcher.ui.theme.accentChoices
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(nav: Navigator) {
     val p = LocalPalette.current
@@ -51,8 +57,8 @@ fun SettingsScreen(nav: Navigator) {
 
     Page {
         Column(
-            Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 40.dp, vertical = 36.dp),
-            verticalArrangement = Arrangement.spacedBy(22.dp),
+            Modifier.verticalScroll(rememberScrollState()).padding(horizontal = gutter, vertical = gutterTop),
+            verticalArrangement = Arrangement.spacedBy(compact(22.dp, 16.dp)),
         ) {
             Header("Settings", { nav.back() })
 
@@ -79,7 +85,7 @@ fun SettingsScreen(nav: Navigator) {
                 SettingRow("Cute animations", "The mascot bobs and blinks, sparkles twinkle") {
                     Toggle(s.animations, { v -> Store.updateSettings { it.copy(animations = v) } }, "Animations")
                 }
-                SettingRow("Theme", when (s.themeId()) {
+                SettingRow("Theme and pictures", when (s.themeId()) {
                     "meadow" -> "Meadow: painted skies and strawberries"
                     "paper" -> "Paper: black and white for e-ink"
                     else -> "Cozy cream"
@@ -94,7 +100,7 @@ fun SettingsScreen(nav: Navigator) {
             Card(spacing = 14.dp) {
                 SectionLabel("Pen hold for a text box")
                 Txt("How long to hold the pen still before a text box and keyboard appear.", T.body(16), color = p.muted)
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     listOf(800L to "Quick", 1200L to "Normal", 2000L to "Long").forEach { (ms, label) ->
                         Chip("$label · ${ms / 1000.0}s", s.penHoldMs == ms, { Store.updateSettings { it.copy(penHoldMs = ms) } })
                     }
@@ -117,10 +123,10 @@ fun SettingsScreen(nav: Navigator) {
 @Composable
 private fun SettingRow(title: String, subtitle: String, control: @Composable () -> Unit) {
     val p = LocalPalette.current
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(compact(16.dp, 12.dp))) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Txt(title, T.body(19, 700))
-            Txt(subtitle, T.body(15), color = p.muted)
+            Txt(title, T.body(compact(19, 17), 700))
+            Txt(subtitle, T.body(compact(15, 14)), color = p.muted)
         }
         control()
     }

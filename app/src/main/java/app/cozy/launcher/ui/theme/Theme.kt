@@ -7,6 +7,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -108,6 +109,9 @@ fun einkPalette() = Palette(
 val LocalPalette = staticCompositionLocalOf { cozyPalette(Color(0xFFF4C2CB)) }
 val LocalAnimate = staticCompositionLocalOf { true }
 
+/** True on a phone-sized screen (narrower than 600dp), where layouts tighten up. */
+val LocalCompact = staticCompositionLocalOf { false }
+
 val accentChoices = listOf(0xFFF4C2CB, 0xFFD9D0F2, 0xFFF6E2A8, 0xFFBFE0F0)
 
 /** Fonts from assets/fonts when present, system fonts otherwise. */
@@ -204,6 +208,7 @@ fun CozyTheme(theme: String, accent: Long, animations: Boolean, content: @Compos
     CompositionLocalProvider(
         LocalPalette provides palette,
         LocalAnimate provides (animations && theme != "paper"),
+        LocalCompact provides (LocalConfiguration.current.screenWidthDp < 600),
         content = content,
     )
 }

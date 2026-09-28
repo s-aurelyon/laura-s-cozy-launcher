@@ -52,7 +52,11 @@ import app.cozy.launcher.ui.PillStyle
 import app.cozy.launcher.ui.RoundButton
 import app.cozy.launcher.ui.Screen
 import app.cozy.launcher.ui.SectionLabel
+import app.cozy.launcher.ui.compact
 import app.cozy.launcher.ui.dashedBorder
+import app.cozy.launcher.ui.gutter
+import app.cozy.launcher.ui.gutterTop
+import app.cozy.launcher.ui.theme.LocalCompact
 import app.cozy.launcher.ui.theme.LocalAnimate
 import app.cozy.launcher.ui.theme.LocalPalette
 import app.cozy.launcher.ui.theme.T
@@ -72,30 +76,33 @@ fun EditScreen(nav: Navigator, selectTile: String?) {
     val t = rememberInfiniteTransition(label = "wiggle")
     val wig by t.animateFloat(-1.2f, 1.2f, infiniteRepeatable(tween(260), RepeatMode.Reverse), label = "wig")
     val wiggle = if (LocalAnimate.current) wig else 0f
+    val phone = LocalCompact.current
+    val addTile = {
+        val newTile = Tile(newId(), "New tile", "heart")
+        Store.updateSettings { it.copy(tiles = it.tiles + newTile) }
+        selected = newTile.id
+    }
 
     Page {
         Column(
-            Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 40.dp, vertical = 36.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+            Modifier.verticalScroll(rememberScrollState()).padding(horizontal = gutter, vertical = gutterTop),
+            verticalArrangement = Arrangement.spacedBy(compact(24.dp, 16.dp)),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(compact(10.dp, 8.dp))) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Txt("Edit home", T.display(40))
-                    Txt("Tap a tile, then choose what it opens", T.body(17), color = p.muted)
+                    Txt("Edit home", T.display(compact(40, 28)), maxLines = 1)
+                    Txt("Tap a tile, then choose what it opens", T.body(compact(17, 14)), color = p.muted)
                 }
                 RoundButton("settings", "Settings", { nav.go(Screen.Settings) })
-                Pill("+ Add tile", {
-                    val newTile = Tile(newId(), "New tile", "heart")
-                    Store.updateSettings { it.copy(tiles = it.tiles + newTile) }
-                    selected = newTile.id
-                }, style = PillStyle.DASHED)
+                if (!phone) Pill("+ Add tile", addTile, style = PillStyle.DASHED)
                 Pill("Done", { nav.back() }, style = PillStyle.DARK)
             }
 
             // The tiles, wiggling while in edit mode
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            val gap = compact(16.dp, 10.dp)
+            Column(verticalArrangement = Arrangement.spacedBy(gap)) {
                 settings.tiles.chunked(3).forEach { chunk ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
                         chunk.forEachIndexed { i, tl ->
                             val isSel = tl.id == selected
                             val shape = RoundedCornerShape(24.dp)
@@ -104,24 +111,25 @@ fun EditScreen(nav: Navigator, selectTile: String?) {
                             m = if (isSel) m.border(3.dp, p.ink, shape) else m.dashedBorder(p.dashed, 24.dp)
                             Column(
                                 m.clickable(onClickLabel = "Edit ${tl.label}", role = Role.Button) { selected = tl.id }
-                                    .padding(vertical = 18.dp, horizontal = 10.dp),
+                                    .padding(vertical = compact(18.dp, 12.dp), horizontal = compact(10.dp, 6.dp)),
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(compact(8.dp, 4.dp)),
                             ) {
-                                CozyIcon(tl.icon, size = 30.dp)
-                                Txt(tl.label, T.display(20, 500), maxLines = 1)
-                                Txt(opensLabel(ctx, tl), T.body(14), color = p.muted, maxLines = 1, align = TextAlign.Center)
+                                CozyIcon(tl.icon, size = compact(30.dp, 24.dp))
+                                Txt(tl.label, T.display(compact(20, 16), 500), maxLines = 1)
+                                Txt(opensLabel(ctx, tl), T.body(compact(14, 12)), color = p.muted, maxLines = 1, align = TextAlign.Center)
                             }
                         }
                         repeat(3 - chunk.size) { Spacer(Modifier.weight(1f)) }
                     }
                 }
             }
+            if (phone) Pill("+ Add tile", addTile, Modifier.fillMaxWidth(), style = PillStyle.DASHED)
 
             if (tile != null) {
-                Card(radius = 32.dp, spacing = 20.dp) {
+                Card(radius = compact(32.dp, 26.dp), spacing = compact(20.dp, 16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Txt("${tile.label} tile", T.display(28, 500), Modifier.weight(1f), maxLines = 1)
+                        Txt("${tile.label} tile", T.display(compact(28, 21), 500), Modifier.weight(1f), maxLines = 1)
                         val index = settings.tiles.indexOfFirst { it.id == tile.id }
                         RoundButton("back", "Move earlier", { move(tile.id, -1) }, size = 44.dp)
                         RoundButton("forward", "Move later", { move(tile.id, 1) }, size = 44.dp)
@@ -140,7 +148,7 @@ fun EditScreen(nav: Navigator, selectTile: String?) {
                             val on = tile.icon == key
                             val shape = RoundedCornerShape(18.dp)
                             Box(
-                                Modifier.size(56.dp).clip(shape).background(if (on) p.ink else p.soft)
+                                Modifier.size(compact(56.dp, 48.dp)).clip(shape).background(if (on) p.ink else p.soft)
                                     .clickable(onClickLabel = "$key icon", role = Role.Button) { Store.updateTile(tile.id) { it.copy(icon = key) } },
                                 contentAlignment = Alignment.Center,
                             ) { CozyIcon(key, size = 26.dp, tint = if (on) p.onInk else p.ink) }

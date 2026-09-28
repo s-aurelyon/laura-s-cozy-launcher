@@ -51,6 +51,10 @@ import app.cozy.launcher.ui.home.Divider
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.draw.rotate
 import app.cozy.launcher.ui.RoundButton
+import app.cozy.launcher.ui.compact
+import app.cozy.launcher.ui.gutter
+import app.cozy.launcher.ui.gutterTop
+import app.cozy.launcher.ui.theme.LocalCompact
 import app.cozy.launcher.ui.meadow.MeadowBanner
 import app.cozy.launcher.ui.meadow.PaperTag
 import app.cozy.launcher.ui.meadow.SceneBunny
@@ -84,31 +88,36 @@ fun NotesScreen(nav: Navigator) {
         .sortedByDescending { it.updatedAt }
     val pinned = shown.filter { it.pinned }
     val others = shown.filterNot { it.pinned }
+    val phone = LocalCompact.current
+    val pinnedPerRow = if (phone) 1 else 2
 
     Page {
         Column(
             Modifier.verticalScroll(rememberScrollState()),
         ) {
           if (p.meadow) {
-            MeadowBanner(250.dp, seed = 7, hy = 170.dp, dm = 30.dp, df = 58.dp, bunnies = listOf(SceneBunny(0.9f, 246f, 0.7f, true))) {
+            MeadowBanner(
+                compact(250.dp, 170.dp), seed = 7, hy = compact(170.dp, 110.dp), dm = compact(30.dp, 22.dp), df = compact(58.dp, 42.dp),
+                bunnies = listOf(SceneBunny(0.9f, compact(246f, 166f), compact(0.7f, 0.5f), true)),
+            ) {
                 Row(
-                    Modifier.fillMaxWidth().padding(start = 40.dp, end = 40.dp, top = 36.dp),
+                    Modifier.fillMaxWidth().padding(start = gutter, end = gutter, top = gutterTop),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(compact(14.dp, 8.dp)),
                 ) {
                     RoundButton("back", "Back", { nav.back() })
-                    PaperTag(padding = androidx.compose.foundation.layout.PaddingValues(horizontal = 22.dp, vertical = 8.dp)) { Txt("Notes", T.display(38)) }
+                    PaperTag(padding = androidx.compose.foundation.layout.PaddingValues(horizontal = compact(22.dp, 16.dp), vertical = 8.dp)) { Txt("Notes", T.display(compact(38, 28))) }
                     Spacer(Modifier.weight(1f))
-                    Pill("New note", { nav.go(Screen.Templates) }, style = PillStyle.BERRY, icon = "plus")
+                    Pill(if (phone) "New" else "New note", { nav.go(Screen.Templates) }, style = PillStyle.BERRY, icon = "plus")
                 }
             }
           }
           Column(
-            Modifier.padding(horizontal = 40.dp, vertical = if (p.meadow) 22.dp else 36.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+            Modifier.padding(horizontal = gutter, vertical = if (p.meadow) compact(22.dp, 16.dp) else gutterTop),
+            verticalArrangement = Arrangement.spacedBy(compact(24.dp, 16.dp)),
           ) {
             if (!p.meadow) Header("Notes", { nav.back() }) {
-                Pill("New note", { nav.go(Screen.Templates) }, style = PillStyle.DARK, icon = "plus")
+                Pill(if (phone) "New" else "New note", { nav.go(Screen.Templates) }, style = PillStyle.DARK, icon = "plus")
             }
             CozyField(search, { search = it }, "Search notes", Modifier.fillMaxWidth(), leadingIcon = "search")
 
@@ -122,19 +131,19 @@ fun NotesScreen(nav: Navigator) {
 
             if (pinned.isNotEmpty() && p.meadow) {
                 Column(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(30.dp)).gingham().padding(start = 26.dp, end = 26.dp, top = 22.dp, bottom = 30.dp),
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(30.dp)).gingham().padding(start = compact(26.dp, 18.dp), end = compact(26.dp, 18.dp), top = 22.dp, bottom = compact(30.dp, 24.dp)),
                     verticalArrangement = Arrangement.spacedBy(26.dp),
                 ) {
                     Box(Modifier.clip(RoundedCornerShape(14.dp)).background(p.card).padding(horizontal = 14.dp, vertical = 6.dp)) {
                         Txt("Pinned", T.body(16, 800))
                     }
-                    pinned.chunked(2).forEach { pair ->
+                    pinned.chunked(pinnedPerRow).forEach { pair ->
                         Row(horizontalArrangement = Arrangement.spacedBy(26.dp)) {
                             pair.forEachIndexed { i, n ->
                                 MeadowPinnedCard(n, Modifier.weight(1f), if (i == 0) -1.5f else 1.2f, if (i == 0) Color(0xFFF4A6B8) else Color(0xFFB9D38F),
                                     { nav.go(Screen.Editor(n.id)) }, { menuFor = n })
                             }
-                            if (pair.size == 1) Spacer(Modifier.weight(1f))
+                            if (pair.size < pinnedPerRow) Spacer(Modifier.weight(1f))
                         }
                     }
                 }
@@ -143,18 +152,18 @@ fun NotesScreen(nav: Navigator) {
                     CozyIcon("pin", size = 18.dp, tint = p.muted)
                     SectionLabel("Pinned")
                 }
-                pinned.chunked(2).forEach { pair ->
+                pinned.chunked(pinnedPerRow).forEach { pair ->
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         pair.forEach { n -> PinnedCard(n, Modifier.weight(1f), { nav.go(Screen.Editor(n.id)) }, { menuFor = n }) }
-                        if (pair.size == 1) Spacer(Modifier.weight(1f))
+                        if (pair.size < pinnedPerRow) Spacer(Modifier.weight(1f))
                     }
                 }
             }
 
             if (others.isNotEmpty() && p.meadow) {
                 val nb = RoundedCornerShape(22.dp)
-                Column(Modifier.fillMaxWidth().clip(nb).background(p.card).border(2.dp, p.border, nb).notebookLines()) {
-                    Txt(if (folder != null) folder!!.lowercase() else "recent notes", T.hand(28), Modifier.height(52.dp).padding(start = 92.dp, top = 8.dp))
+                Column(Modifier.fillMaxWidth().clip(nb).background(p.card).border(2.dp, p.border, nb).notebookLines(margin = compact(72.dp, 36.dp))) {
+                    Txt(if (folder != null) folder!!.lowercase() else "recent notes", T.hand(28), Modifier.height(52.dp).padding(start = compact(92.dp, 50.dp), top = 8.dp))
                     others.forEach { n -> MeadowNoteRow(n, { nav.go(Screen.Editor(n.id)) }, { menuFor = n }) }
                     Spacer(Modifier.height(12.dp))
                 }
@@ -180,8 +189,8 @@ fun NotesScreen(nav: Navigator) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(18.dp),
             ) {
-                Mascot(size = 72.dp, bob = false)
-                Txt("Tip: hold your pen still on a page for a moment and a text box pops up with the keyboard.", T.body(18, 600), Modifier.weight(1f))
+                Mascot(size = compact(72.dp, 52.dp), bob = false)
+                Txt("Tip: hold your pen still on a page for a moment and a text box pops up with the keyboard.", T.body(compact(18, 15), 600), Modifier.weight(1f))
             }
           }
         }
@@ -229,14 +238,15 @@ private fun MeadowPinnedCard(n: Note, modifier: Modifier, rot: Float, tape: Colo
 @Composable
 private fun MeadowNoteRow(n: Note, onOpen: () -> Unit, onMenu: () -> Unit) {
     val p = LocalPalette.current
+    val phone = LocalCompact.current
     Row(
-        Modifier.fillMaxWidth().height(52.dp).combinedClickable(onClick = onOpen, onLongClick = onMenu).padding(start = 92.dp, end = 24.dp),
+        Modifier.fillMaxWidth().height(52.dp).combinedClickable(onClick = onOpen, onLongClick = onMenu).padding(start = compact(92.dp, 50.dp), end = compact(24.dp, 14.dp)),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(compact(14.dp, 10.dp)),
     ) {
-        Txt(n.title.ifBlank { "Untitled" }, T.body(19, 700), maxLines = 1)
-        Txt("${relativeDay(n.updatedAt)} · ${n.previewText()}", T.body(16), Modifier.weight(1f), color = p.muted, maxLines = 1)
-        Tag(Templates.info(n.template).name)
+        Txt(n.title.ifBlank { "Untitled" }, T.body(compact(19, 16), 700), maxLines = 1)
+        Txt(if (phone) relativeDay(n.updatedAt) else "${relativeDay(n.updatedAt)} · ${n.previewText()}", T.body(compact(16, 14)), Modifier.weight(1f), color = p.muted, maxLines = 1)
+        if (!phone) Tag(Templates.info(n.template).name)
     }
 }
 
@@ -267,13 +277,13 @@ private fun PinnedCard(n: Note, modifier: Modifier, onOpen: () -> Unit, onMenu: 
 private fun NoteRow(n: Note, onOpen: () -> Unit, onMenu: () -> Unit) {
     val p = LocalPalette.current
     Row(
-        Modifier.fillMaxWidth().combinedClickable(onClick = onOpen, onLongClick = onMenu).padding(horizontal = 22.dp, vertical = 18.dp),
+        Modifier.fillMaxWidth().combinedClickable(onClick = onOpen, onLongClick = onMenu).padding(horizontal = compact(22.dp, 16.dp), vertical = compact(18.dp, 14.dp)),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(compact(16.dp, 10.dp)),
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Txt(n.title.ifBlank { "Untitled" }, T.body(19, 700), maxLines = 1)
-            Txt("${relativeDay(n.updatedAt)} · ${n.previewText()}", T.body(16), color = p.muted, maxLines = 1)
+            Txt(n.title.ifBlank { "Untitled" }, T.body(compact(19, 17), 700), maxLines = 1)
+            Txt("${relativeDay(n.updatedAt)} · ${n.previewText()}", T.body(compact(16, 14)), color = p.muted, maxLines = 1)
         }
         Tag(Templates.info(n.template).name)
     }

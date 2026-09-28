@@ -83,6 +83,10 @@ data class Settings(
     val bunnies: Boolean = true,
     val driftClouds: Boolean = true,
     val stickers: Boolean = true,
+    /** Her own pictures, by slot (see [Pictures]): file names in the app's private storage. */
+    val pictures: Map<String, String> = emptyMap(),
+    /** How much the page colour softens a background picture, 0 (clear) to 1 (hidden). */
+    val pictureVeil: Float = 0.35f,
 )
 
 /** The theme in use. The older e-ink switch still counts as the Paper theme. */

@@ -42,6 +42,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import app.cozy.launcher.ui.theme.LocalCompact
 import app.cozy.launcher.ui.theme.LocalPalette
 import app.cozy.launcher.ui.theme.T
 import app.cozy.launcher.ui.theme.Txt
@@ -51,14 +52,27 @@ import java.time.LocalTime
 
 // ---------- Layout ----------
 
-/** The page every screen sits on: cream background, content centred on wide screens. */
+/** The page every screen sits on: cream background (or her own picture), content centred on wide screens. */
 @Composable
 fun Page(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     val p = LocalPalette.current
     Box(Modifier.fillMaxSize().background(p.bg), contentAlignment = Alignment.TopCenter) {
+        PageBackdrop()
         Column(modifier.widthIn(max = 860.dp).fillMaxSize(), content = content)
     }
 }
+
+/** Side margin of a screen: roomy on the tablet, snug on a phone. */
+val gutter: Dp
+    @Composable get() = if (LocalCompact.current) 16.dp else 40.dp
+
+/** Top and bottom margin of a screen. */
+val gutterTop: Dp
+    @Composable get() = if (LocalCompact.current) 18.dp else 36.dp
+
+/** The tablet size, or the phone size on a narrow screen. */
+@Composable
+fun <T> compact(tablet: T, phone: T): T = if (LocalCompact.current) phone else tablet
 
 fun Modifier.dashedBorder(color: Color, radius: Dp, width: Dp = 2.dp): Modifier = drawBehind {
     val w = width.toPx()
@@ -77,7 +91,7 @@ fun Card(
     color: Color = LocalPalette.current.card,
     border: Color? = LocalPalette.current.border,
     radius: Dp = 28.dp,
-    padding: PaddingValues = PaddingValues(24.dp),
+    padding: PaddingValues = PaddingValues(if (LocalCompact.current) 18.dp else 24.dp),
     spacing: Dp = 14.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -109,7 +123,7 @@ fun RoundButton(
     description: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    size: Dp = 52.dp,
+    size: Dp = if (LocalCompact.current) 44.dp else 52.dp,
     filled: Boolean = false,
     tint: Color? = null,
 ) {
@@ -137,8 +151,8 @@ fun Pill(
     modifier: Modifier = Modifier,
     style: PillStyle = PillStyle.LIGHT,
     icon: String? = null,
-    textSize: Int = 17,
-    padding: PaddingValues = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+    textSize: Int = if (LocalCompact.current) 16 else 17,
+    padding: PaddingValues = if (LocalCompact.current) PaddingValues(horizontal = 16.dp, vertical = 11.dp) else PaddingValues(horizontal = 20.dp, vertical = 12.dp),
 ) {
     val p = LocalPalette.current
     val shape = RoundedCornerShape(24.dp)
@@ -232,10 +246,10 @@ fun Header(title: String, onBack: (() -> Unit)?, actions: @Composable RowScope.(
     Row(
         Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(compact(12.dp, 8.dp)),
     ) {
         if (onBack != null) RoundButton("back", "Back", onBack)
-        Txt(title, T.display(40), Modifier.weight(1f).padding(start = 4.dp), maxLines = 1)
+        Txt(title, T.display(compact(40, 28)), Modifier.weight(1f).padding(start = 4.dp), maxLines = 1)
         actions()
     }
 }
@@ -257,7 +271,7 @@ fun CozyField(
 ) {
     val p = LocalPalette.current
     val shape = RoundedCornerShape(20.dp)
-    val outer = if (boxed) modifier.clip(shape).background(p.card).border(p.line, p.border, shape).padding(horizontal = 18.dp, vertical = 14.dp) else modifier
+    val outer = if (boxed) modifier.clip(shape).background(p.card).border(p.line, p.border, shape).padding(horizontal = compact(18.dp, 14.dp), vertical = compact(14.dp, 12.dp)) else modifier
     BasicTextField(
         value = value,
         onValueChange = onChange,
@@ -285,8 +299,8 @@ fun CozyField(
 fun CozyDialog(onDismiss: () -> Unit, title: String, content: @Composable ColumnScope.() -> Unit) {
     val p = LocalPalette.current
     Dialog(onDismissRequest = onDismiss) {
-        Card(Modifier.widthIn(max = 560.dp).fillMaxWidth(), radius = 30.dp, padding = PaddingValues(28.dp), spacing = 18.dp) {
-            Txt(title, T.display(28, 500), color = p.ink)
+        Card(Modifier.widthIn(max = 560.dp).fillMaxWidth(), radius = 30.dp, padding = PaddingValues(compact(28.dp, 20.dp)), spacing = compact(18.dp, 14.dp)) {
+            Txt(title, T.display(compact(28, 23), 500), color = p.ink)
             content()
         }
     }

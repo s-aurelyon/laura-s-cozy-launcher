@@ -1,7 +1,8 @@
 # Cozy
 
 A minimalist home screen for Laura's Xiaomi tablet (and the Bigme e-ink reader),
-with its own Notes, Reminders, Focus timer and Calendar built in.
+with its own Notes, Reminders, Focus timer and Calendar built in. It works on normal
+phones too: on a narrow screen every theme switches to a phone layout by itself.
 
 ## What's inside
 
@@ -31,6 +32,11 @@ with its own Notes, Reminders, Focus timer and Calendar built in.
     washi tape and meadow note papers. Scenes: sunny, strawberry picnic, golden hour and
     starry night, or let the sky follow the time of day.
   - **Paper**: black and white for the Bigme e-ink reader.
+  - **Your own pictures** (on the Theme screen, kept separately for each theme): a
+    background behind every screen, a photo in place of the painted meadow (Meadow), and a
+    photo on the home screen's mascot card (Cozy cream and Paper). "Soften the background"
+    washes the picture with the page colour so words stay easy to read. Pictures are copied
+    into Cozy, so deleting the original from the gallery doesn't remove them.
 - **Stickers** in notes: strawberry, bunny, cloud, daisy, matcha, basket, sun and heart.
   Pick the sticker tool, choose one, tap the page. Drag to move, tap to remove.
 - **Settings** (Edit home → gear): name, colour, animations, theme, week start, and how

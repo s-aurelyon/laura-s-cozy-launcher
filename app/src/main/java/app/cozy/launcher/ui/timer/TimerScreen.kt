@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -50,6 +52,10 @@ import app.cozy.launcher.ui.Page
 import app.cozy.launcher.ui.Pill
 import app.cozy.launcher.ui.PillStyle
 import app.cozy.launcher.ui.Toggle
+import app.cozy.launcher.ui.compact
+import app.cozy.launcher.ui.gutter
+import app.cozy.launcher.ui.gutterTop
+import app.cozy.launcher.ui.theme.LocalCompact
 import app.cozy.launcher.ui.home.Divider
 import app.cozy.launcher.ui.rememberNow
 import app.cozy.launcher.ui.theme.LocalPalette
@@ -61,6 +67,7 @@ fun TimerScreen(nav: Navigator) {
     if (LocalPalette.current.meadow) MeadowTimerScreen(nav) else CozyTimerScreen(nav)
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CozyTimerScreen(nav: Navigator) {
     val p = LocalPalette.current
@@ -94,11 +101,12 @@ private fun CozyTimerScreen(nav: Navigator) {
         else -> "Ready when you are"
     }
 
+    val phone = LocalCompact.current
     Page {
         Column(
-            Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 40.dp, vertical = 36.dp),
+            Modifier.verticalScroll(rememberScrollState()).padding(horizontal = gutter, vertical = gutterTop),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+            verticalArrangement = Arrangement.spacedBy(compact(24.dp, 18.dp)),
         ) {
             Header("Focus", { nav.back() })
 
@@ -112,16 +120,17 @@ private fun CozyTimerScreen(nav: Navigator) {
                     Box(
                         Modifier.clip(RoundedCornerShape(20.dp)).background(if (on) p.ink else Color.Transparent)
                             .clickable(onClickLabel = Focus.label(m), role = Role.Tab) { Focus.setMode(m) }
-                            .padding(horizontal = 24.dp, vertical = 12.dp)
-                    ) { Txt(Focus.label(m), T.body(17, 700), color = if (on) p.onInk else p.ink) }
+                            .padding(horizontal = compact(24.dp, 12.dp), vertical = 12.dp)
+                    ) { Txt(Focus.label(m), T.body(compact(17, 15), 700), color = if (on) p.onInk else p.ink, maxLines = 1) }
                 }
             }
 
             // Ring
-            Box(Modifier.size(360.dp), contentAlignment = Alignment.Center) {
+            val ring = compact(360.dp, 270.dp)
+            Box(Modifier.size(ring), contentAlignment = Alignment.Center) {
                 val ringColor = if (p.eink) p.ink else if (timer.mode == Focus.FOCUS) p.blushInk else Color(0xFF8FC7A6)
-                Canvas(Modifier.size(360.dp)) {
-                    val w = 22.dp.toPx()
+                Canvas(Modifier.size(ring)) {
+                    val w = compact(22.dp, 18.dp).toPx()
                     val inset = w / 2 + 4.dp.toPx()
                     val arcSize = Size(size.width - inset * 2, size.height - inset * 2)
                     drawCircle(Color.White, radius = size.width / 2 - inset)
@@ -129,9 +138,9 @@ private fun CozyTimerScreen(nav: Navigator) {
                     drawArc(ringColor, -90f, 360f * progress, false, Offset(inset, inset), arcSize, style = Stroke(w, cap = StrokeCap.Round))
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Mascot(size = 120.dp, mood = mood, bob = running)
-                    Txt("%02d:%02d".format(sec / 60, sec % 60), T.display(66), maxLines = 1)
-                    Txt(status, T.body(16, 700), color = p.muted)
+                    Mascot(size = compact(120.dp, 84.dp), mood = mood, bob = running)
+                    Txt("%02d:%02d".format(sec / 60, sec % 60), T.display(compact(66, 50)), maxLines = 1)
+                    Txt(status, T.body(compact(16, 14), 700), color = p.muted)
                 }
             }
 
@@ -147,11 +156,17 @@ private fun CozyTimerScreen(nav: Navigator) {
                             .border(2.dp, if (i < doneCount || isCurrent) p.ink else p.dashed, shape)
                     )
                 }
-                Txt("Session ${(timer.session % 4) + 1} of 4, then a long break", T.body(16, 700), color = p.muted)
+                Txt(
+                    if (phone) "Session ${(timer.session % 4) + 1} of 4" else "Session ${(timer.session % 4) + 1} of 4, then a long break",
+                    T.body(compact(16, 14), 700), color = p.muted,
+                )
             }
 
             // Presets
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 listOf(5, 15, 25, 45).forEach { m ->
                     val on = timer.totalSec == m * 60
                     val shape = RoundedCornerShape(18.dp)
@@ -166,22 +181,29 @@ private fun CozyTimerScreen(nav: Navigator) {
             }
 
             // Controls
-            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                Pill("Reset", { Focus.reset() }, Modifier.width(150.dp), style = PillStyle.LIGHT, textSize = 20, padding = PaddingValues(18.dp))
+            Row(if (phone) Modifier.fillMaxWidth() else Modifier, horizontalArrangement = Arrangement.spacedBy(compact(14.dp, 10.dp))) {
+                Pill("Reset", { Focus.reset() }, if (phone) Modifier.weight(1f) else Modifier.width(150.dp), style = PillStyle.LIGHT, textSize = compact(20, 18), padding = PaddingValues(compact(18.dp, 15.dp)))
                 val label = when {
                     running -> "Pause"
                     sec < timer.totalSec -> "Resume"
                     timer.finishedMode != null -> "Start ${Focus.label(timer.mode).lowercase()}"
                     else -> "Start"
                 }
-                Pill(label, { if (running) Focus.pause() else Focus.start() }, Modifier.width(250.dp), style = PillStyle.DARK, textSize = 20, padding = PaddingValues(18.dp))
+                Pill(label, { if (running) Focus.pause() else Focus.start() }, if (phone) Modifier.weight(1.6f) else Modifier.width(250.dp), style = PillStyle.DARK, textSize = compact(20, 18), padding = PaddingValues(compact(18.dp, 15.dp)))
             }
 
             // Settings
             Card(Modifier.fillMaxWidth(), padding = PaddingValues(0.dp), spacing = 0.dp) {
-                Row(Modifier.padding(horizontal = 22.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Txt("Focusing on", T.body(18, 600), Modifier.weight(1f))
-                    CozyField(timer.focusingOn, { Focus.setFocusingOn(it) }, "Something lovely", Modifier.width(300.dp), style = T.body(17))
+                if (phone) {
+                    Column(Modifier.padding(horizontal = 18.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Txt("Focusing on", T.body(16, 600))
+                        CozyField(timer.focusingOn, { Focus.setFocusingOn(it) }, "Something lovely", Modifier.fillMaxWidth(), style = T.body(16))
+                    }
+                } else {
+                    Row(Modifier.padding(horizontal = 22.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Txt("Focusing on", T.body(18, 600), Modifier.weight(1f))
+                        CozyField(timer.focusingOn, { Focus.setFocusingOn(it) }, "Something lovely", Modifier.width(300.dp), style = T.body(17))
+                    }
                 }
                 Divider()
                 SettingLine("Sound when done") {
@@ -216,8 +238,8 @@ private fun CozyTimerScreen(nav: Navigator) {
 
 @Composable
 private fun SettingLine(label: String, control: @Composable () -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-        Txt(label, T.body(18, 600), Modifier.weight(1f))
+    Row(Modifier.fillMaxWidth().padding(horizontal = compact(22.dp, 18.dp), vertical = compact(16.dp, 12.dp)), verticalAlignment = Alignment.CenterVertically) {
+        Txt(label, T.body(compact(18, 16), 600), Modifier.weight(1f))
         control()
     }
 }

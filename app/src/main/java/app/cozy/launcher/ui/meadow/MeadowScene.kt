@@ -11,6 +11,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -23,7 +25,11 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.cozy.launcher.data.Pictures
 import app.cozy.launcher.data.Settings
+import app.cozy.launcher.data.Store
+import app.cozy.launcher.ui.PictureFill
+import app.cozy.launcher.ui.rememberPicture
 import java.time.LocalTime
 import kotlin.math.cos
 import kotlin.math.min
@@ -145,6 +151,7 @@ private fun rememberMotion(): Motion {
 /**
  * The painted meadow: sky, clouds, mountains, three hills full of little flowers, and bunnies.
  * Drawn in three layers so only the moving bits (clouds, bunnies) redraw while animating.
+ * If she has chosen her own meadow picture, that shows instead (unless [photo] is false).
  */
 @Composable
 fun MeadowScene(
@@ -163,7 +170,17 @@ fun MeadowScene(
     picnic: Boolean = false,
     wave: Color? = null,
     animate: Boolean = true,
+    photo: Boolean = true,
 ) {
+    val settings by Store.settings.collectAsState()
+    val pic = if (photo) rememberPicture(settings.pictures[Pictures.MEADOW_SCENE]) else null
+    if (pic != null) {
+        Box(modifier) {
+            PictureFill(pic, Modifier.matchParentSize())
+            if (wave != null) Canvas(Modifier.matchParentSize()) { drawWave(wave) }
+        }
+        return
+    }
     val pal = scenePal(variant)
     val s = remember(seed, flowers) { makeSeed(seed, flowers, 70) }
     val motion = if (animate) rememberMotion() else null
@@ -309,15 +326,21 @@ private fun DrawScope.drawLand(
         drawBasket(cx + 50f * d, cy - 20f * d, 0.34f * d, 5)
     }
 
-    if (wave != null) {
-        drawPath(Path().apply {
-            moveTo(0f, H - 16f * d)
-            cubicTo(W * .125f, H - 30f * d, W * .25f, H - 6f * d, W * .375f, H - 20f * d)
-            cubicTo(W * .5f, H - 34f * d, W * .625f, H - 32f * d, W * .75f, H - 16f * d)
-            cubicTo(W * .875f, H, W * .925f, H - 6f * d, W, H - 22f * d)
-            lineTo(W, H); lineTo(0f, H); close()
-        }, wave)
-    }
+    if (wave != null) drawWave(wave)
+}
+
+/** The soft wave along the bottom that blends the scene into the page. */
+private fun DrawScope.drawWave(wave: Color) {
+    val W = size.width
+    val H = size.height
+    val d = density
+    drawPath(Path().apply {
+        moveTo(0f, H - 16f * d)
+        cubicTo(W * .125f, H - 30f * d, W * .25f, H - 6f * d, W * .375f, H - 20f * d)
+        cubicTo(W * .5f, H - 34f * d, W * .625f, H - 32f * d, W * .75f, H - 16f * d)
+        cubicTo(W * .875f, H, W * .925f, H - 6f * d, W, H - 22f * d)
+        lineTo(W, H); lineTo(0f, H); close()
+    }, wave)
 }
 
 private fun DrawScope.blooms(pal: ScenePal, s: SceneSeed, band: Int, W: Float, y0: Float, y1: Float, rmin: Float, rmax: Float) {

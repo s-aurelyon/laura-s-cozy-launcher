@@ -1,5 +1,9 @@
 package app.cozy.launcher.ui.home
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -20,6 +24,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,28 +37,42 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import app.cozy.launcher.data.Pictures
 import app.cozy.launcher.data.Store
 import app.cozy.launcher.data.themeId
 import app.cozy.launcher.ui.Card
+import app.cozy.launcher.ui.Chip
 import app.cozy.launcher.ui.CozyIcon
 import app.cozy.launcher.ui.Header
 import app.cozy.launcher.ui.Navigator
 import app.cozy.launcher.ui.Page
+import app.cozy.launcher.ui.PictureFill
 import app.cozy.launcher.ui.Pill
 import app.cozy.launcher.ui.PillStyle
 import app.cozy.launcher.ui.SectionLabel
 import app.cozy.launcher.ui.Toggle
+import app.cozy.launcher.ui.compact
+import app.cozy.launcher.ui.dashedBorder
+import app.cozy.launcher.ui.gutter
+import app.cozy.launcher.ui.gutterTop
+import app.cozy.launcher.ui.rememberPicture
 import app.cozy.launcher.ui.meadow.MeadowScene
 import app.cozy.launcher.ui.meadow.SceneBunny
 import app.cozy.launcher.ui.meadow.SceneCloud
 import app.cozy.launcher.ui.meadow.drawStrawberry
+import app.cozy.launcher.ui.theme.LocalCompact
 import app.cozy.launcher.ui.theme.LocalPalette
 import app.cozy.launcher.ui.theme.T
 import app.cozy.launcher.ui.theme.Txt
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlin.math.max
 
-/** Settings › Theme: Cozy cream, Meadow or Paper, plus the Meadow extras. */
+/** Settings › Theme: Cozy cream, Meadow or Paper, her own pictures, plus the Meadow extras. */
 @Composable
 fun ThemesScreen(nav: Navigator) {
     val p = LocalPalette.current
@@ -58,22 +80,27 @@ fun ThemesScreen(nav: Navigator) {
     val current = s.themeId()
 
     fun choose(id: String) = Store.updateSettings { it.copy(theme = if (id == "paper") it.theme else id, eink = id == "paper") }
+    val phone = LocalCompact.current
 
     Page {
         Column(
-            Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 40.dp, vertical = 36.dp),
-            verticalArrangement = Arrangement.spacedBy(22.dp),
+            Modifier.verticalScroll(rememberScrollState()).padding(horizontal = gutter, vertical = gutterTop),
+            verticalArrangement = Arrangement.spacedBy(compact(22.dp, 16.dp)),
         ) {
             Header("Theme", { nav.back() })
-            Txt("Same apps, same notes. Just a different mood.", T.body(17), color = p.muted)
+            Txt("Same apps, same notes. Just a different mood.", T.body(compact(17, 15)), color = p.muted)
 
-            Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(compact(18.dp, 8.dp))) {
                 ThemeCard("Cozy cream", "Soft and simple", current == "cozy", Modifier.weight(1f), { choose("cozy") }) {
                     Canvas(Modifier.fillMaxSize()) { drawCozyMini() }
                 }
                 ThemeCard("Meadow", "Painted skies, strawberries", current == "meadow", Modifier.weight(1f), { choose("meadow") }) {
                     Column(Modifier.fillMaxSize()) {
-                        MeadowScene(
+                        if (phone) MeadowScene(
+                            Modifier.fillMaxWidth().height(80.dp), variant = "sunny", hy = 50.dp, dm = 10.dp, df = 20.dp, seed = 31,
+                            tall = SceneCloud(0.6f, 0f, 0.18f), clouds = listOf(SceneCloud(0.15f, 16f, 0.11f)),
+                            bunnies = listOf(SceneBunny(0.75f, 76f, 0.22f, true)), flowers = 30, animate = false,
+                        ) else MeadowScene(
                             Modifier.fillMaxWidth().height(150.dp), variant = "sunny", hy = 92.dp, dm = 18.dp, df = 36.dp, seed = 31,
                             tall = SceneCloud(0.6f, 0f, 0.33f), clouds = listOf(SceneCloud(0.15f, 30f, 0.2f)),
                             bunnies = listOf(SceneBunny(0.75f, 142f, 0.4f, true)), flowers = 50, animate = false,
@@ -86,32 +113,74 @@ fun ThemesScreen(nav: Navigator) {
                 }
             }
 
-            SectionLabel("Meadow scene")
-            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                listOf(
-                    Triple("sunny", "Sunny meadow", "sunny"),
-                    Triple("picnic", "Strawberry picnic", "sunny"),
-                    Triple("golden", "Golden hour", "golden"),
-                    Triple("night", "Starry night", "night"),
-                ).forEach { (key, name, variant) ->
-                    val on = s.scene == key
-                    val shape = RoundedCornerShape(20.dp)
+            // Her own pictures, kept separately for each theme
+            SectionLabel(
+                "Your own pictures for " + when (current) {
+                    "meadow" -> "Meadow"
+                    "paper" -> "Paper"
+                    else -> "Cozy cream"
+                }
+            )
+            Card(padding = PaddingValues(0.dp), spacing = 0.dp) {
+                if (current == "meadow") {
+                    PictureRow("Sky and meadow", "A photo in place of the painted meadow", Pictures.MEADOW_SCENE)
+                    Divider()
+                }
+                PictureRow("Background", "Behind every screen", Pictures.page(current))
+                if (current != "meadow") {
+                    Divider()
+                    PictureRow("Home card", "Behind the mascot on the home screen", Pictures.card(current))
+                }
+                if (s.pictures[Pictures.page(current)] != null) {
+                    Divider()
                     Column(
-                        Modifier.weight(1f).clip(shape).background(p.card)
-                            .border(if (on) 3.dp else 2.dp, if (on) p.ink else p.border, shape)
-                            .clickable(onClickLabel = name, role = Role.RadioButton) { Store.updateSettings { it.copy(scene = key) } }
-                            .padding(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        Modifier.fillMaxWidth().padding(horizontal = compact(22.dp, 16.dp), vertical = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        MeadowScene(
-                            Modifier.fillMaxWidth().height(110.dp).clip(RoundedCornerShape(12.dp)),
-                            variant = variant, hy = 66.dp, dm = 16.dp, df = 30.dp, seed = 41,
-                            tall = if (variant != "night") SceneCloud(0.58f, 0f, 0.28f) else null,
-                            clouds = listOf(SceneCloud(0.15f, 26f, 0.18f)),
-                            bunnies = if (key == "sunny") listOf(SceneBunny(0.78f, 104f, 0.34f, true)) else emptyList(),
-                            flowers = 40, picnic = key == "picnic", animate = false, mountains = true,
-                        )
-                        Txt(name, T.body(16, 700), Modifier.padding(horizontal = 4.dp), maxLines = 1)
+                        Txt("Soften the background", T.body(compact(19, 17), 800))
+                        Txt("A wash of colour over the picture keeps words easy to read", T.body(compact(15, 14)), color = p.muted)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(0f to "Clear", 0.35f to "Soft", 0.65f to "Misty").forEach { (veil, label) ->
+                                Chip(label, s.pictureVeil == veil, { Store.updateSettings { it.copy(pictureVeil = veil) } })
+                            }
+                        }
+                    }
+                }
+            }
+            Txt("Pictures are copied into Cozy and stay on this device. Each theme keeps its own.", T.body(compact(15, 14)), color = p.muted)
+
+            SectionLabel("Meadow scene")
+            if (s.pictures[Pictures.MEADOW_SCENE] != null) {
+                Txt("Your own sky and meadow picture is showing instead. Remove it to see these again.", T.body(compact(15, 14)), color = p.muted)
+            }
+            val scenes = listOf(
+                Triple("sunny", "Sunny meadow", "sunny"),
+                Triple("picnic", "Strawberry picnic", "sunny"),
+                Triple("golden", "Golden hour", "golden"),
+                Triple("night", "Starry night", "night"),
+            )
+            scenes.chunked(if (phone) 2 else 4).forEach { rowScenes ->
+                Row(horizontalArrangement = Arrangement.spacedBy(compact(14.dp, 10.dp))) {
+                    rowScenes.forEach { (key, name, variant) ->
+                        val on = s.scene == key
+                        val shape = RoundedCornerShape(20.dp)
+                        Column(
+                            Modifier.weight(1f).clip(shape).background(p.card)
+                                .border(if (on) 3.dp else 2.dp, if (on) p.ink else p.border, shape)
+                                .clickable(onClickLabel = name, role = Role.RadioButton) { Store.updateSettings { it.copy(scene = key) } }
+                                .padding(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            MeadowScene(
+                                Modifier.fillMaxWidth().height(110.dp).clip(RoundedCornerShape(12.dp)),
+                                variant = variant, hy = 66.dp, dm = 16.dp, df = 30.dp, seed = 41,
+                                tall = if (variant != "night") SceneCloud(0.58f, 0f, 0.28f) else null,
+                                clouds = listOf(SceneCloud(0.15f, 26f, 0.18f)),
+                                bunnies = if (key == "sunny") listOf(SceneBunny(0.78f, 104f, 0.34f, true)) else emptyList(),
+                                flowers = 40, picnic = key == "picnic", animate = false, mountains = true, photo = false,
+                            )
+                            Txt(name, T.body(compact(16, 14), 700), Modifier.padding(horizontal = 4.dp), maxLines = 1)
+                        }
                     }
                 }
             }
@@ -142,6 +211,62 @@ fun ThemesScreen(nav: Navigator) {
     }
 }
 
+/** One of her own pictures: a little preview, and buttons to choose, change or remove it. */
+@Composable
+private fun PictureRow(title: String, sub: String, slot: String) {
+    val p = LocalPalette.current
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val s by Store.settings.collectAsState()
+    val name = s.pictures[slot]
+    val pic = rememberPicture(name)
+    var busy by remember { mutableStateOf(false) }
+
+    val pick = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        busy = true
+        scope.launch {
+            // Big enough to fill the screen sharply, small enough to load quickly.
+            val m = ctx.resources.displayMetrics
+            val maxSide = max(m.widthPixels, m.heightPixels).coerceIn(1024, 2048)
+            val stored = withContext(Dispatchers.IO) { Pictures.import(ctx, uri, slot, maxSide) }
+            busy = false
+            if (stored != null) Pictures.set(slot, stored)
+            else Toast.makeText(ctx, "That picture couldn't be opened. Try another one.", Toast.LENGTH_LONG).show()
+        }
+    }
+    fun choose() = pick.launch(PickVisualMediaRequest.Builder().setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly).build())
+
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = compact(22.dp, 16.dp), vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(compact(18.dp, 14.dp)),
+    ) {
+        val shape = RoundedCornerShape(18.dp)
+        val thumb = compact(84.dp, 64.dp)
+        Box(
+            Modifier.size(thumb).clip(shape).background(p.soft)
+                .then(if (pic != null) Modifier.border(2.dp, p.border, shape) else Modifier.dashedBorder(p.dashed, 18.dp))
+                .clickable(onClickLabel = "Choose a picture for $title", role = Role.Button) { choose() },
+            contentAlignment = Alignment.Center,
+        ) {
+            if (pic != null) PictureFill(pic, Modifier.matchParentSize())
+            else CozyIcon("camera", size = thumb * 0.36f, tint = p.muted)
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column {
+                Txt(title, T.body(compact(19, 17), 800))
+                Txt(if (busy) "Getting it ready…" else sub, T.body(compact(15, 14)), color = p.muted)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val small = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                Pill(if (name != null) "Change" else "Choose", { choose() }, style = PillStyle.LIGHT, icon = "camera", textSize = 15, padding = small)
+                if (name != null) Pill("Remove", { Pictures.set(slot, null) }, style = PillStyle.SOFT, textSize = 15, padding = small)
+            }
+        }
+    }
+}
+
 @Composable
 private fun ThemeCard(name: String, desc: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit, preview: @Composable () -> Unit) {
     val p = LocalPalette.current
@@ -150,21 +275,22 @@ private fun ThemeCard(name: String, desc: String, selected: Boolean, modifier: M
         modifier.clip(shape).background(p.card)
             .border(if (selected) 3.dp else 2.dp, if (selected) p.ink else p.border, shape)
             .clickable(onClickLabel = "Use $name", role = Role.RadioButton, onClick = onClick)
-            .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(start = compact(12.dp, 7.dp), end = compact(12.dp, 7.dp), top = compact(12.dp, 7.dp), bottom = compact(16.dp, 10.dp)),
+        verticalArrangement = Arrangement.spacedBy(compact(12.dp, 8.dp)),
     ) {
-        Box(Modifier.fillMaxWidth().height(300.dp).clip(RoundedCornerShape(16.dp)).border(2.dp, p.border, RoundedCornerShape(16.dp))) {
+        Box(Modifier.fillMaxWidth().height(compact(300.dp, 160.dp)).clip(RoundedCornerShape(16.dp)).border(2.dp, p.border, RoundedCornerShape(16.dp))) {
             preview()
             if (selected) {
+                val badge = compact(36.dp, 26.dp)
                 Box(
-                    Modifier.align(Alignment.TopEnd).padding(10.dp).size(36.dp).clip(RoundedCornerShape(18.dp)).background(p.ink),
+                    Modifier.align(Alignment.TopEnd).padding(compact(10.dp, 6.dp)).size(badge).clip(RoundedCornerShape(badge / 2)).background(p.ink),
                     contentAlignment = Alignment.Center,
-                ) { CozyIcon("check", size = 20.dp, tint = p.onInk, weight = 3f) }
+                ) { CozyIcon("check", size = badge * 0.55f, tint = p.onInk, weight = 3f) }
             }
         }
-        Column(Modifier.padding(horizontal = 4.dp)) {
-            Txt(name, T.display(22, 500), maxLines = 1)
-            Txt(desc, T.body(15), color = p.muted, maxLines = 2)
+        Column(Modifier.padding(horizontal = compact(4.dp, 2.dp))) {
+            Txt(name, T.display(compact(22, 15), 500), maxLines = 1)
+            Txt(desc, T.body(compact(15, 12)), color = p.muted, maxLines = 2)
         }
     }
 }
